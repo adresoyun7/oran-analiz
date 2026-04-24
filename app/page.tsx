@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { getDailyScanner } from "@/lib/api";
 
 type Match = any;
 
@@ -49,6 +48,7 @@ const LEAGUES = [
 ];
 
 const DATE_OPTIONS = ["Bugün", "Yarın", "2 Gün Sonra", "3 Gün Sonra", "Özel Tarih"];
+const SEASONS = ["2324", "2425", "2526"];
 
 function todayText() {
   return new Intl.DateTimeFormat("tr-TR", {
@@ -79,6 +79,7 @@ export default function HomePage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [dateOption, setDateOption] = useState("Bugün");
   const [selectedLeagues, setSelectedLeagues] = useState<string[]>(["🏆 Tüm Ligler"]);
+  const [selectedSeasons, setSelectedSeasons] = useState<string[]>(["2324", "2425", "2526"]);
   const [query, setQuery] = useState("");
 
   const matches: Match[] = scanner?.top_matches || [];
@@ -99,100 +100,100 @@ export default function HomePage() {
   }, [matches, selected]);
 
   async function loadScanner() {
-  setLoading(true);
-  setError("");
+    setLoading(true);
+    setError("");
 
-  const fakeData = {
-    total_matches: 6,
-    top_matches: [
-      {
-        home_team: "Galatasaray",
-        away_team: "Fenerbahçe",
-        league: "Süper Lig",
-        time: "20:00",
-        main_pick: "MS 1",
-        selection: "2.5 Üst",
-        market: "ALT/ÜST",
-        pro_score: 78,
-        odd: 1.85,
-        match_type: "Favori",
-        goal_profile: "Yüksek Tempo",
-      },
-      {
-        home_team: "Real Madrid",
-        away_team: "Barcelona",
-        league: "La Liga",
-        time: "22:00",
-        main_pick: "KG Var",
-        selection: "KG Var",
-        market: "KG",
-        pro_score: 72,
-        odd: 1.95,
-        match_type: "Dengeli Derbi",
-        goal_profile: "Açık Oyun",
-      },
-      {
-        home_team: "Manchester City",
-        away_team: "Liverpool",
-        league: "Premier League",
-        time: "18:30",
-        main_pick: "2.5 Üst",
-        selection: "3.5 Üst",
-        market: "ALT/ÜST",
-        pro_score: 81,
-        odd: 1.70,
-        match_type: "Yüksek Kalite",
-        goal_profile: "Bol Gol",
-      },
-      {
-        home_team: "PSG",
-        away_team: "Marseille",
-        league: "Ligue 1",
-        time: "21:45",
-        main_pick: "MS 1",
-        selection: "2.5 Üst",
-        market: "ALT/ÜST",
-        pro_score: 65,
-        odd: 1.60,
-        match_type: "Favori",
-        goal_profile: "Orta-Yüksek",
-      },
-      {
-        home_team: "Bayern Münih",
-        away_team: "Dortmund",
-        league: "Bundesliga",
-        time: "19:30",
-        main_pick: "KG Var",
-        selection: "KG Var",
-        market: "KG",
-        pro_score: 54,
-        odd: 1.90,
-        match_type: "Riskli Derbi",
-        goal_profile: "Gollü",
-      },
-      {
-        home_team: "Roma",
-        away_team: "Milan",
-        league: "Serie A",
-        time: "21:45",
-        main_pick: "2.5 Alt",
-        selection: "2.5 Alt",
-        market: "ALT/ÜST",
-        pro_score: 49,
-        odd: 2.10,
-        match_type: "Dengeli",
-        goal_profile: "Düşük Tempo",
-      },
-    ],
-  };
+    const fakeData = {
+      total_matches: 6,
+      top_matches: [
+        {
+          home_team: "Galatasaray",
+          away_team: "Fenerbahçe",
+          league: "Süper Lig",
+          time: "20:00",
+          main_pick: "MS 1",
+          selection: "2.5 Üst",
+          market: "ALT/ÜST",
+          pro_score: 78,
+          odd: 1.85,
+          match_type: "Favori",
+          goal_profile: "Yüksek Tempo",
+        },
+        {
+          home_team: "Real Madrid",
+          away_team: "Barcelona",
+          league: "La Liga",
+          time: "22:00",
+          main_pick: "KG Var",
+          selection: "KG Var",
+          market: "KG",
+          pro_score: 72,
+          odd: 1.95,
+          match_type: "Dengeli Derbi",
+          goal_profile: "Açık Oyun",
+        },
+        {
+          home_team: "Manchester City",
+          away_team: "Liverpool",
+          league: "Premier League",
+          time: "18:30",
+          main_pick: "2.5 Üst",
+          selection: "3.5 Üst",
+          market: "ALT/ÜST",
+          pro_score: 81,
+          odd: 1.7,
+          match_type: "Yüksek Kalite",
+          goal_profile: "Bol Gol",
+        },
+        {
+          home_team: "PSG",
+          away_team: "Marseille",
+          league: "Ligue 1",
+          time: "21:45",
+          main_pick: "MS 1",
+          selection: "2.5 Üst",
+          market: "ALT/ÜST",
+          pro_score: 65,
+          odd: 1.6,
+          match_type: "Favori",
+          goal_profile: "Orta-Yüksek",
+        },
+        {
+          home_team: "Bayern Münih",
+          away_team: "Dortmund",
+          league: "Bundesliga",
+          time: "19:30",
+          main_pick: "KG Var",
+          selection: "KG Var",
+          market: "KG",
+          pro_score: 54,
+          odd: 1.9,
+          match_type: "Riskli Derbi",
+          goal_profile: "Gollü",
+        },
+        {
+          home_team: "Roma",
+          away_team: "Milan",
+          league: "Serie A",
+          time: "21:45",
+          main_pick: "2.5 Alt",
+          selection: "2.5 Alt",
+          market: "ALT/ÜST",
+          pro_score: 49,
+          odd: 2.1,
+          match_type: "Dengeli",
+          goal_profile: "Düşük Tempo",
+        },
+      ],
+    };
 
-  setTimeout(() => {
-    setScanner(fakeData);
-    setSelected(fakeData.top_matches[0]);
-    localStorage.setItem("vibe_scanner", JSON.stringify(fakeData));
-    setLoading(false);
-  }, 700);
-}
+    setTimeout(() => {
+      setScanner(fakeData);
+      setSelected(fakeData.top_matches[0]);
+      localStorage.setItem("vibe_scanner", JSON.stringify(fakeData));
+      setLoading(false);
+    }, 700);
+  }
 
   function openDetail(m: Match, index: number) {
     localStorage.setItem("vibe_selected_match", JSON.stringify(m));
@@ -238,6 +239,16 @@ export default function HomePage() {
     });
   }
 
+  function toggleSeason(season: string) {
+    setSelectedSeasons((prev) => {
+      if (prev.includes(season)) {
+        const next = prev.filter((x) => x !== season);
+        return next.length ? next : prev;
+      }
+      return [...prev, season];
+    });
+  }
+
   const filteredLeagues = LEAGUES.filter((x) =>
     x.toLowerCase().includes(query.toLowerCase())
   );
@@ -250,6 +261,8 @@ export default function HomePage() {
     selectedLeagues.includes("🏆 Tüm Ligler")
       ? "Tüm Ligler"
       : `${selectedLeagues.length} lig seçili`;
+
+  const seasonSummary = `${selectedSeasons.length} sezon`;
 
   return (
     <main className="min-h-screen bg-[#070b12] text-slate-100">
@@ -361,13 +374,13 @@ export default function HomePage() {
                 className="mb-4 w-full rounded-2xl border border-yellow-400/25 bg-gradient-to-br from-[#151b28] to-[#0d1320] p-4 text-left shadow-xl hover:border-yellow-400/60"
               >
                 <div className="mb-1 text-xs font-black uppercase tracking-widest text-yellow-400">
-                  Tarih & Lig Seçimi
+                  Tarih, Lig & Sezon
                 </div>
                 <div className="text-sm font-black text-white">
                   🌐 {dateOption} • {leagueSummary}
                 </div>
                 <div className="mt-1 text-xs text-slate-500">
-                  Açmak için tıkla
+                  {seasonSummary} seçili • Açmak için tıkla
                 </div>
               </button>
 
@@ -381,21 +394,6 @@ export default function HomePage() {
               <div className="mb-5 rounded-xl border border-white/10 bg-[#111827] px-3 py-2 text-sm text-slate-500">
                 ***************
               </div>
-
-              <label className="mb-2 block text-xs text-slate-400">
-                Analiz Tarihi
-              </label>
-              <div className="mb-5 rounded-xl border border-white/10 bg-[#111827] px-3 py-2 text-sm text-yellow-300">
-                {todayText()}
-              </div>
-
-              <div className="mb-3 text-xs font-bold text-slate-400">Sezonlar</div>
-              {["2324", "2425", "2526"].map((s) => (
-                <label key={s} className="mb-2 flex items-center gap-2 text-sm text-slate-300">
-                  <input type="checkbox" defaultChecked className="accent-yellow-400" />
-                  {s}
-                </label>
-              ))}
 
               <div className="mt-5 mb-2 text-xs font-bold text-slate-400">
                 Oran Hassasiyeti
@@ -634,12 +632,12 @@ export default function HomePage() {
 
       {filterOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
-          <div className="w-full max-w-4xl rounded-3xl border border-yellow-400/20 bg-[#0b111c] p-6 text-white shadow-2xl">
+          <div className="w-full max-w-5xl rounded-3xl border border-yellow-400/20 bg-[#0b111c] p-6 text-white shadow-2xl">
             <div className="mb-5 flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-black">Tarih ve Lig Seçimi</h2>
+                <h2 className="text-2xl font-black">Tarih, Lig ve Sezon Seçimi</h2>
                 <p className="text-sm text-slate-400">
-                  Analiz yapılacak günü ve ligleri seç.
+                  Analiz yapılacak günü, sezonu ve ligleri seç.
                 </p>
               </div>
               <button
@@ -650,7 +648,7 @@ export default function HomePage() {
               </button>
             </div>
 
-            <div className="grid gap-5 md:grid-cols-[0.8fr_1.2fr]">
+            <div className="grid gap-5 lg:grid-cols-[0.75fr_0.75fr_1.2fr]">
               <div className="rounded-2xl border border-white/10 bg-[#111827] p-4">
                 <div className="mb-3 text-xs font-black uppercase text-yellow-400">
                   Tarih Seçimi
@@ -668,6 +666,29 @@ export default function HomePage() {
                     >
                       {d}
                     </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-[#111827] p-4">
+                <div className="mb-3 text-xs font-black uppercase text-yellow-400">
+                  Sezon Seçimi
+                </div>
+
+                <div className="grid gap-2">
+                  {SEASONS.map((season) => (
+                    <label
+                      key={season}
+                      className="flex cursor-pointer items-center gap-3 rounded-xl bg-[#0b111c] px-4 py-3 text-sm hover:bg-[#172238]"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedSeasons.includes(season)}
+                        onChange={() => toggleSeason(season)}
+                        className="accent-yellow-400"
+                      />
+                      <span>{season}</span>
+                    </label>
                   ))}
                 </div>
               </div>
