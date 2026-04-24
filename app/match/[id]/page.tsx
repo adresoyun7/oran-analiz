@@ -1,14 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Match = any;
 
-function safePercent(v: any) {
-  const n = Number(v || 0);
-  if (Number.isNaN(n)) return 0;
+function safePercent(v: any, fallback = 55) {
+  const n = Number(v ?? fallback);
+  if (Number.isNaN(n)) return fallback;
   return Math.max(0, Math.min(100, n));
+}
+
+function clamp(n: number) {
+  return Math.max(1, Math.min(98, Math.round(n)));
+}
+
+function makePercents(base: number) {
+  const main = clamp(base);
+  const draw = clamp(100 - main - 24);
+  const away = clamp(100 - main - draw);
+  return { main, draw, away };
 }
 
 export default function MatchDetailPage() {
@@ -18,6 +29,32 @@ export default function MatchDetailPage() {
     const raw = localStorage.getItem("vibe_selected_match");
     if (raw) setMatch(JSON.parse(raw));
   }, []);
+
+  const similarMatches = useMemo(() => {
+    if (!match) return [];
+
+    const teams = [
+      ["Arsenal", "Chelsea", "MS 1", "2-1"],
+      ["Roma", "Lazio", "KG Var", "1-1"],
+      ["PSV", "Ajax", "2.5 Üst", "3-1"],
+      ["Benfica", "Porto", "2.5 Alt", "1-0"],
+      ["Leverkusen", "Frankfurt", "MS 1", "2-0"],
+      ["Sevilla", "Villarreal", "KG Var", "2-2"],
+      ["Lyon", "Nice", "MS X", "1-1"],
+      ["Feyenoord", "Twente", "2.5 Üst", "3-0"],
+      ["Milan", "Napoli", "2.5 Alt", "1-1"],
+      ["Fenerbahçe", "Trabzonspor", "MS 1", "2-1"],
+    ];
+
+    return teams.map((t, i) => ({
+      home: t[0],
+      away: t[1],
+      pick: t[2],
+      score: t[3],
+      odd: (Number(match.odd || 1.75) + (i - 4) * 0.03).toFixed(2),
+      result: i % 3 === 0 ? "Kazandı" : i % 3 === 1 ? "Yattı" : "Berabere",
+    }));
+  }, [match]);
 
   if (!match) {
     return (
@@ -35,8 +72,24 @@ export default function MatchDetailPage() {
     );
   }
 
-  const score = safePercent(match.pro_score);
+  const score = safePercent(match.pro_score, 62);
   const risky = score < 55;
+
+  const ms = makePercents(score);
+  const homePct = match.main_pick === "MS 2" ? clamp(100 - ms.main - ms.draw) : ms.main;
+  const drawPct = ms.draw;
+  const awayPct = match.main_pick === "MS 2" ? ms.main : clamp(100 - homePct - drawPct);
+
+  const over25 = clamp(score + 4);
+  const under25 = clamp(100 - over25);
+  const bttsYes = clamp(match.main_pick === "KG Var" ? score : score - 6);
+  const bttsNo = clamp(100 - bttsYes);
+  const firstHalfHome = clamp(homePct - 12);
+  const firstHalfDraw = clamp(42);
+  const firstHalfAway = clamp(100 - firstHalfHome - firstHalfDraw);
+  const iyOver05 = clamp(score + 2);
+  const iyUnder05 = clamp(100 - iyOver05);
+  const over35 = clamp(over25 - 18);
 
   return (
     <main className="min-h-screen bg-[#070b12] p-5 text-slate-100">
@@ -62,9 +115,9 @@ export default function MatchDetailPage() {
               </p>
             </div>
 
-            <button className="rounded-xl border border-yellow-400/25 px-4 py-2 text-sm font-black text-yellow-300 hover:bg-yellow-400/10">
-              ☆ Takibe Al
-            </button>
+            <div className={`rounded-2xl px-5 py-3 text-center font-black ${risky ? "bg-red-500/15 text-red-300" : "bg-yellow-400 text-black"}`}>
+              {risky ? "⚠️ Riskli" : "🔥 Güçlü Aday"}
+            </div>
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">
@@ -74,89 +127,100 @@ export default function MatchDetailPage() {
           </div>
         </div>
 
-        <div className="mb-5 rounded-3xl border border-white/10 bg-[#111827] p-5 shadow-xl">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-xl font-black text-white">Analiz Özeti</h2>
-              <p className="text-sm text-slate-400">
-                Oran, güven skoru ve maç profiline göre üretilen demo analiz.
-              </p>
-            </div>
-
-            <div className={`rounded-2xl px-5 py-3 text-center font-black ${risky ? "bg-red-500/15 text-red-300" : "bg-yellow-400 text-black"}`}>
-              {risky ? "⚠️ Riskli" : "🔥 Güçlü Aday"}
-            </div>
-          </div>
-
-          <div className="grid gap-4 lg:grid-cols-[1.35fr_1fr]">
-            <Panel title="Maç Tahminleri">
-              <PredictionRow name="🏆 Ana Seçim" pick={match.main_pick || match.selection || "-"} pct={score} />
-              <PredictionRow name="⚽ Alternatif Market" pick={match.selection || "-"} pct={Math.max(45, score - 6)} />
-              <PredictionRow name="🤝 Karşılıklı Gol" pick={match.market === "KG" ? match.selection : "Var"} pct={match.market === "KG" ? score : 58} />
-              <PredictionRow name="📊 Gol Profili" pick={match.goal_profile || "Dengeli"} pct={Math.max(50, score - 10)} />
-              <PredictionRow name="⏱️ Canlı Takip" pick="İlk 15 dk tempo kontrol" pct={62} />
+        <Section title="Maç Tahminleri" desc="Temel marketlerin yüzdesel dağılımı">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Panel title="Maç Sonucu 1 / X / 2">
+              <PredictionRow name="1" pick={match.home_team || "Ev Sahibi"} pct={homePct} />
+              <PredictionRow name="X" pick="Beraberlik" pct={drawPct} />
+              <PredictionRow name="2" pick={match.away_team || "Deplasman"} pct={awayPct} />
             </Panel>
 
-            <Panel title="Oran ve Risk Kartı">
-              <div className="mb-4 grid grid-cols-3 gap-2 text-center text-sm">
-                <OddBox label="1" value={match.odd || "-"} />
-                <OddBox label="X" value="-" />
-                <OddBox label="2" value="-" />
-              </div>
+            <Panel title="2.5 Üst / Alt">
+              <PredictionRow name="2.5 Üst" pick="Gol beklentisi yüksek" pct={over25} />
+              <PredictionRow name="2.5 Alt" pick="Daha kontrollü senaryo" pct={under25} />
+            </Panel>
 
-              <div className="rounded-2xl border border-white/10 bg-[#0b111c] p-4">
-                <div className="mb-2 flex justify-between text-xs font-bold text-slate-400">
-                  <span>Güven Barı</span>
-                  <span>%{score}</span>
-                </div>
-                <div className="h-3 rounded-full bg-[#243047]">
-                  <div
-                    className={`h-3 rounded-full ${risky ? "bg-red-500" : "bg-yellow-400"}`}
-                    style={{ width: `${score}%` }}
-                  />
-                </div>
-                <p className="mt-3 text-xs leading-5 text-slate-400">
-                  {risky
-                    ? "Bu maçta güven skoru düşük. Tek başına güçlü aday gibi değerlendirilmemeli."
-                    : "Güven skoru iyi seviyede. Yine de canlı tempo ve kadro kontrolü önerilir."}
-                </p>
+            <Panel title="Karşılıklı Gol">
+              <PredictionRow name="KG Var" pick="İki takım da gol bulabilir" pct={bttsYes} />
+              <PredictionRow name="KG Yok" pick="Tek taraflı skor ihtimali" pct={bttsNo} />
+            </Panel>
+
+            <Panel title="İlk Yarı Sonucu">
+              <PredictionRow name="İY 1" pick={match.home_team || "Ev Sahibi"} pct={firstHalfHome} />
+              <PredictionRow name="İY X" pick="İlk yarı beraberlik" pct={firstHalfDraw} />
+              <PredictionRow name="İY 2" pick={match.away_team || "Deplasman"} pct={firstHalfAway} />
+            </Panel>
+
+            <Panel title="İlk Yarı 0.5 Üst / Alt">
+              <PredictionRow name="İY 0.5 Üst" pick="İlk yarıda gol beklenir" pct={iyOver05} />
+              <PredictionRow name="İY 0.5 Alt" pick="İlk yarı sakin geçebilir" pct={iyUnder05} />
+            </Panel>
+          </div>
+        </Section>
+
+        <Section title="Diğer Öneriler" desc="Alternatif market ve canlı oyun planı">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Panel title="HT/FT">
+              <PredictionRow name="İY/MS" pick={homePct > awayPct ? "1/1" : awayPct > homePct ? "2/2" : "X/X"} pct={clamp(score - 8)} />
+            </Panel>
+
+            <Panel title="Toplam Gol 3.5">
+              <PredictionRow name="3.5 Üst" pick="Bol gollü senaryo" pct={over35} />
+              <PredictionRow name="3.5 Alt" pick="Daha güvenli gol sınırı" pct={clamp(100 - over35)} />
+            </Panel>
+
+            <Panel title="Kombo">
+              <PredictionRow
+                name="Önerilen Kombo"
+                pick={`${match.main_pick || match.selection || "MS 1"} + ${over25 > 60 ? "1.5 Üst" : "Çifte Şans"}`}
+                pct={clamp(score - 5)}
+              />
+            </Panel>
+
+            <Panel title="Canlı Tercih">
+              <div className="rounded-2xl border border-yellow-400/20 bg-yellow-400/10 p-4 text-sm leading-6 text-yellow-100">
+                İlk 15 dakikada tempo yüksekse <b>{over25 > 60 ? "gol marketleri" : "ana taraf marketi"}</b> daha değerli olur.
+                Baskı düşükse maç önü tahmini yerine canlı izlemek daha mantıklı.
               </div>
             </Panel>
           </div>
-        </div>
+        </Section>
 
-        <Panel title="Neden Bu Tahmin?" full>
-          <div className="grid gap-3 md:grid-cols-3">
-            <ReasonCard title="Maç Tipi" value={match.match_type || "Favori"} />
-            <ReasonCard title="Gol Profili" value={match.goal_profile || "Dengeli"} />
-            <ReasonCard title="AI Yorumu" value={match.ai_comment || "Oran yapısı ve güven skoru bu seçimi öne çıkarıyor."} />
+        <Section title="Neden Bu Tahmin?" desc="AI analiz özeti">
+          <div className="rounded-3xl border border-yellow-400/20 bg-yellow-400/10 p-5 text-sm leading-7 text-yellow-100">
+            <b>AI Analiz:</b> {match.home_team || "Ev sahibi"} - {match.away_team || "deplasman"} maçında oran yapısı,
+            güven skoru ve maç profili birlikte değerlendirildiğinde ana senaryo{" "}
+            <b>{match.main_pick || match.selection || "-"}</b> tarafını öne çıkarıyor. Maç tipi{" "}
+            <b>{match.match_type || "dengeli"}</b>, gol profili ise <b>{match.goal_profile || "orta tempo"}</b> görünüyor.
+            Canlıda erken baskı, isabetli şut ve korner temposu gelirse tahmin güçlenir; ilk bölüm düşük tempolu geçerse risk artar.
           </div>
+        </Section>
 
-          <div className="mt-4 rounded-2xl border border-yellow-400/20 bg-yellow-400/10 p-4 text-sm leading-6 text-yellow-100">
-            <b>Yorum:</b> {match.home_team || "Ev sahibi"} tarafı analizde öne çıkıyor. Ana senaryo{" "}
-            <b>{match.main_pick || match.selection || "-"}</b>. Ancak skor ve tempo verisi canlıda tersine dönerse risk artabilir.
-          </div>
-
-          <div className="mt-3 rounded-2xl border border-red-400/25 bg-red-500/10 p-4 text-sm leading-6 text-red-200">
-            <b>Risk:</b> Bu platform kesin sonuç vermez. Analiz yalnızca istatistiksel değerlendirme ve demo veri sunumudur.
-          </div>
-        </Panel>
-
-        <div className="mt-5 rounded-3xl border border-white/10 bg-[#111827] p-5 shadow-xl">
-          <h3 className="mb-4 text-lg font-black text-white">
-            Benzer Oranlı Geçmiş Maçlar
-          </h3>
-
-          <div className="rounded-2xl border border-dashed border-yellow-400/20 bg-[#0b111c] p-8 text-center">
-            <div className="text-4xl">📊</div>
-            <div className="mt-3 text-lg font-black text-white">
-              Geçmiş maç verisi backend bağlanınca gösterilecek
+        <Section title="Benzer Oranlı Geçmiş 10 Maç" desc="Seçili orana yakın demo geçmiş maç tablosu">
+          <div className="overflow-hidden rounded-3xl border border-white/10 bg-[#111827]">
+            <div className="grid grid-cols-[1.5fr_90px_120px_100px] bg-[#0b111c] px-4 py-3 text-xs font-black uppercase text-slate-400">
+              <div>Maç</div>
+              <div>Oran</div>
+              <div>Tahmin</div>
+              <div>Skor</div>
             </div>
-            <p className="mt-1 text-sm text-slate-400">
-              Şu an demo mod aktif olduğu için sahte tablo yerine temiz bilgilendirme gösteriliyor.
-            </p>
+
+            {similarMatches.map((m, i) => (
+              <div
+                key={i}
+                className="grid grid-cols-[1.5fr_90px_120px_100px] border-t border-white/10 px-4 py-3 text-sm hover:bg-[#151f33]"
+              >
+                <div className="font-bold text-white">
+                  {m.home} - {m.away}
+                  <div className="text-xs font-normal text-slate-500">{m.result}</div>
+                </div>
+                <div className="font-black text-yellow-300">{m.odd}</div>
+                <div className="font-bold text-slate-200">{m.pick}</div>
+                <div className="text-slate-300">{m.score}</div>
+              </div>
+            ))}
           </div>
-        </div>
+        </Section>
 
         <footer className="mt-8 rounded-2xl border border-red-400/30 bg-red-500/10 p-4 text-xs leading-6 text-red-200">
           <b>⚠️ Yasal Uyarı:</b> Bu platform yalnızca istatistiksel analizler,
@@ -165,6 +229,18 @@ export default function MatchDetailPage() {
         </footer>
       </div>
     </main>
+  );
+}
+
+function Section({ title, desc, children }: any) {
+  return (
+    <section className="mb-5 rounded-3xl border border-white/10 bg-[#0b111c] p-5 shadow-xl">
+      <div className="mb-4">
+        <h2 className="text-xl font-black text-white">{title}</h2>
+        <p className="text-sm text-slate-400">{desc}</p>
+      </div>
+      {children}
+    </section>
   );
 }
 
@@ -184,9 +260,9 @@ function InfoCard({ title, value, sub, danger }: any) {
   );
 }
 
-function Panel({ title, children, full }: any) {
+function Panel({ title, children }: any) {
   return (
-    <div className={`${full ? "mt-5" : ""} rounded-3xl border border-white/10 bg-[#111827] p-5 text-white shadow-xl`}>
+    <div className="rounded-3xl border border-white/10 bg-[#111827] p-5 text-white shadow-xl">
       <h3 className="mb-4 text-lg font-black">{title}</h3>
       {children}
     </div>
@@ -195,19 +271,19 @@ function Panel({ title, children, full }: any) {
 
 function PredictionRow({ name, pick, pct }: any) {
   const score = safePercent(pct);
-  const risky = score < 55;
+  const risky = score < 50;
 
   return (
-    <div className="mb-4 grid gap-3 border-b border-white/10 pb-4 md:grid-cols-[1fr_1.2fr]">
+    <div className="mb-4 grid gap-3 border-b border-white/10 pb-4 last:mb-0 last:border-b-0 last:pb-0 md:grid-cols-[0.9fr_1.3fr]">
       <div>
-        <div className="font-bold text-white">{name}</div>
-        <div className="text-xs text-slate-500">AI market analizi</div>
+        <div className="font-black text-white">{name}</div>
+        <div className="text-xs text-slate-500">{pick}</div>
       </div>
 
       <div>
         <div className="mb-1 flex justify-between text-xs font-bold">
-          <span className={risky ? "text-red-300" : "text-yellow-300"}>{pick}</span>
-          <span className="text-slate-400">%{score}</span>
+          <span className={risky ? "text-red-300" : "text-yellow-300"}>%{score}</span>
+          <span className="text-slate-500">AI güven</span>
         </div>
         <div className="h-2 rounded bg-[#263247]">
           <div
@@ -216,26 +292,6 @@ function PredictionRow({ name, pick, pct }: any) {
           />
         </div>
       </div>
-    </div>
-  );
-}
-
-function OddBox({ label, value }: any) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-[#0b111c] p-4">
-      <div className="text-xs text-slate-500">{label}</div>
-      <div className="mt-1 text-xl font-black text-yellow-300">{value}</div>
-    </div>
-  );
-}
-
-function ReasonCard({ title, value }: any) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-[#0b111c] p-4">
-      <div className="mb-2 text-xs font-black uppercase tracking-widest text-yellow-400">
-        {title}
-      </div>
-      <div className="text-sm leading-6 text-slate-300">{value}</div>
     </div>
   );
 }
