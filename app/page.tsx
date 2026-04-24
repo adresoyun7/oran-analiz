@@ -99,20 +99,100 @@ export default function HomePage() {
   }, [matches, selected]);
 
   async function loadScanner() {
-    setLoading(true);
-    setError("");
+  setLoading(true);
+  setError("");
 
-    try {
-      const data = await getDailyScanner();
-      setScanner(data);
-      setSelected(data?.top_matches?.[0] || null);
-      localStorage.setItem("vibe_scanner", JSON.stringify(data));
-    } catch {
-      setError("AI tarama yüklenemedi. Backend açık mı kontrol et.");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const fakeData = {
+    total_matches: 6,
+    top_matches: [
+      {
+        home_team: "Galatasaray",
+        away_team: "Fenerbahçe",
+        league: "Süper Lig",
+        time: "20:00",
+        main_pick: "MS 1",
+        selection: "2.5 Üst",
+        market: "ALT/ÜST",
+        pro_score: 78,
+        odd: 1.85,
+        match_type: "Favori",
+        goal_profile: "Yüksek Tempo",
+      },
+      {
+        home_team: "Real Madrid",
+        away_team: "Barcelona",
+        league: "La Liga",
+        time: "22:00",
+        main_pick: "KG Var",
+        selection: "KG Var",
+        market: "KG",
+        pro_score: 72,
+        odd: 1.95,
+        match_type: "Dengeli Derbi",
+        goal_profile: "Açık Oyun",
+      },
+      {
+        home_team: "Manchester City",
+        away_team: "Liverpool",
+        league: "Premier League",
+        time: "18:30",
+        main_pick: "2.5 Üst",
+        selection: "3.5 Üst",
+        market: "ALT/ÜST",
+        pro_score: 81,
+        odd: 1.70,
+        match_type: "Yüksek Kalite",
+        goal_profile: "Bol Gol",
+      },
+      {
+        home_team: "PSG",
+        away_team: "Marseille",
+        league: "Ligue 1",
+        time: "21:45",
+        main_pick: "MS 1",
+        selection: "2.5 Üst",
+        market: "ALT/ÜST",
+        pro_score: 65,
+        odd: 1.60,
+        match_type: "Favori",
+        goal_profile: "Orta-Yüksek",
+      },
+      {
+        home_team: "Bayern Münih",
+        away_team: "Dortmund",
+        league: "Bundesliga",
+        time: "19:30",
+        main_pick: "KG Var",
+        selection: "KG Var",
+        market: "KG",
+        pro_score: 54,
+        odd: 1.90,
+        match_type: "Riskli Derbi",
+        goal_profile: "Gollü",
+      },
+      {
+        home_team: "Roma",
+        away_team: "Milan",
+        league: "Serie A",
+        time: "21:45",
+        main_pick: "2.5 Alt",
+        selection: "2.5 Alt",
+        market: "ALT/ÜST",
+        pro_score: 49,
+        odd: 2.10,
+        match_type: "Dengeli",
+        goal_profile: "Düşük Tempo",
+      },
+    ],
+  };
+
+  setTimeout(() => {
+    setScanner(fakeData);
+    setSelected(fakeData.top_matches[0]);
+    localStorage.setItem("vibe_scanner", JSON.stringify(fakeData));
+    setLoading(false);
+  }, 700);
+}
 
   function openDetail(m: Match, index: number) {
     localStorage.setItem("vibe_selected_match", JSON.stringify(m));
