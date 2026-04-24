@@ -158,7 +158,7 @@ def fetch_sport_odds(sport_key, league_name, date_mode="today"):
     params = {
         "apiKey": API_KEY,
         "regions": "eu",
-        "markets": "h2h,totals,btts",
+        "markets": "h2h,totals",
         "oddsFormat": "decimal",
         "dateFormat": "iso",
         "commenceTimeFrom": start_iso,
