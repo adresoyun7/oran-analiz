@@ -27,9 +27,7 @@ export default function MatchDetailPage() {
   }, []);
 
   const similarMatches = useMemo(() => {
-    if (!match) return [];
-
-    const rows = [
+    return [
       ["20.03.2026", "Genoa", "Udinese", "0-0", "0-2", "Alt", "Yok", "X/2"],
       ["15.02.2026", "Huesca", "Ceuta", "0-0", "2-0", "Alt", "Yok", "1/1"],
       ["14.02.2026", "Burgos", "Cadiz", "1-1", "1-1", "Alt", "Var", "X/X"],
@@ -41,18 +39,21 @@ export default function MatchDetailPage() {
       ["02.11.2025", "Monza", "Spezia", "0-0", "1-0", "Alt", "Yok", "X/1"],
       ["28.09.2025", "Burgos", "Malaga", "1-1", "2-1", "Üst", "Var", "X/1"],
     ];
-
-    return rows;
-  }, [match]);
+  }, []);
 
   if (!match) {
     return (
-      <main className="min-h-screen bg-[#070b12] p-6 text-white">
-        <div className="mx-auto max-w-3xl rounded-2xl border border-white/10 bg-[#111827] p-8">
-          <h1 className="mb-3 text-2xl font-black">Maç detayı bulunamadı.</h1>
-          <Link href="/" className="rounded-xl bg-yellow-400 px-5 py-3 font-black text-black">
-            Ana sayfaya dön
-          </Link>
+      <main className="min-h-screen bg-[#f4f7fb] text-slate-100">
+        <div className="grid min-h-screen grid-cols-[260px_1fr]">
+          <Sidebar />
+          <section className="min-w-0 p-4">
+            <div className="rounded-xl border border-white/10 bg-[#0b111c] p-8">
+              <h1 className="mb-3 text-2xl font-black text-white">Maç detayı bulunamadı.</h1>
+              <Link href="/" className="rounded-lg bg-yellow-400 px-5 py-3 font-black text-black">
+                Ana sayfaya dön
+              </Link>
+            </div>
+          </section>
         </div>
       </main>
     );
@@ -82,209 +83,215 @@ export default function MatchDetailPage() {
       : "bg-red-500 text-white";
 
   return (
-    <main className="min-h-screen bg-[#f4f7fb] p-3 text-slate-100">
-      <div className="mx-auto max-w-[1800px]">
-        <div className="mb-3 flex items-center justify-between rounded-xl bg-[#0b111c] px-4 py-3">
-          <Link
-            href="/"
-            className="rounded-lg border border-white/10 px-3 py-2 text-xs font-black hover:border-yellow-400/50"
-          >
-            ← Ana Sayfa
-          </Link>
+    <main className="min-h-screen bg-[#f4f7fb] text-slate-100">
+      <div className="grid min-h-screen grid-cols-[260px_1fr]">
+        <Sidebar />
 
-          <div className="text-center">
-            <div className="text-xs font-black uppercase tracking-widest text-yellow-400">
-              Maç Detay Analizi
-            </div>
-            <h1 className="text-2xl font-black text-white">
-              {match.home_team} - {match.away_team}
-            </h1>
-            <p className="text-xs text-slate-400">
-              {match.league || "Lig"} • {match.time || "20:00"}
-            </p>
-          </div>
-
-          <div className="rounded-lg bg-yellow-400 px-3 py-2 text-xs font-black text-black">
-            {match.odd || "1.85"} Oran
-          </div>
-        </div>
-
-        <div className="mb-3 grid gap-3 lg:grid-cols-3">
-          <TopCard title="ANA TAHMİN" value={match.main_pick || match.selection || "-"} sub="Maç sonucu / market önerisi" color="green" />
-          <TopCard title="GÜVEN SKORU" value={`%${score}`} sub="Yüksek güven" color="blue" />
-          <TopCard title="TAHMİNİ SKOR" value={match.expected_score || "1 - 0"} sub="En olası skor" color="dark" />
-        </div>
-
-        <div className="mb-3 rounded-xl bg-[#0b111c] px-4 py-3 text-xs text-slate-300">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              Kullanılan tolerans: <b className="text-white">0.08</b> • Örneklem:{" "}
-              <b className="text-white">10 maç</b> • Güven çarpanı:{" "}
-              <b className="text-white">1.0</b>
-            </div>
-            <div>
-              Maç tipi: <b className="text-yellow-300">{match.match_type || "Sürpriz Açık"}</b> • Gol profili:{" "}
-              <b className="text-yellow-300">{match.goal_profile || "Düşük Gollü"}</b>
-            </div>
-          </div>
-        </div>
-
-        <div className="mb-3 grid gap-3 xl:grid-cols-2">
-          <Panel title="MAÇ TAHMİNLERİ">
-            <MiniMarket
-              icon="🏆"
-              title="Maç Sonucu"
-              sub="1X2"
-              items={[
-                ["1", ms.one],
-                ["X", ms.x],
-                ["2", ms.two],
-              ]}
-            />
-
-            <MiniMarket
-              icon="⚽"
-              title="2.5 Üst/Alt"
-              sub="Toplam Gol"
-              items={[
-                ["Üst", over25],
-                ["Alt", under25],
-              ]}
-            />
-
-            <MiniMarket
-              icon="🤝"
-              title="Karşılıklı Gol"
-              sub="Var / Yok"
-              items={[
-                ["Var", kgVar],
-                ["Yok", kgYok],
-              ]}
-            />
-
-            <MiniMarket
-              icon="⏱️"
-              title="İlk Yarı Sonucu"
-              sub="1X2"
-              items={[
-                ["1", iy1],
-                ["X", iyX],
-                ["2", iy2],
-              ]}
-            />
-
-            <MiniMarket
-              icon="🕐"
-              title="İlk Yarı 0.5 Üst/Alt"
-              sub="İY gol"
-              items={[
-                ["Üst", iyOver05],
-                ["Alt", iyUnder05],
-              ]}
-            />
-
-            <div className="mt-4 flex items-center justify-between rounded-xl bg-[#171d2b] px-4 py-3">
-              <span className="text-xs font-black uppercase tracking-widest text-slate-400">
-                Risk Seviyesi
-              </span>
-              <span className={`rounded-lg px-4 py-2 text-xs font-black ${riskColor}`}>
-                {risk}
-              </span>
-            </div>
-          </Panel>
-
-          <Panel title="DİĞER ÖNERİLER">
-            <OtherRow icon="🔁" title="HT/FT" sub="İlk Yarı / Maç Sonu" value={ms.one > ms.two ? "X/1" : "X/2"} />
-            <OtherRow icon="🌐" title="Toplam Gol 3.5" sub="Tahmini gol sayısı" value={over25 > 60 ? "Alt %64" : "Alt %84"} />
-            <OtherRow icon="⏱️" title="İlk Yarı / 0.5 Üst" sub="İlk yarı toplam gol" value={iyOver05 > 55 ? "Üst %56" : "Alt %54"} />
-            <OtherRow icon="🤝" title="Karşılıklı Gol" sub="KG Var / Yok" value={kgVar > kgYok ? "Var %57" : "Yok %67"} />
-            <OtherRow icon="🎯" title="Güçlü Kombo" sub="Premium" value={`${match.main_pick || "2.5 Alt"} + KG ${kgVar > kgYok ? "Var" : "Yok"}`} />
-            <OtherRow icon="🧩" title="En Uyumlu Senaryo" sub="Model özeti" value={`${match.main_pick || "2.5 Alt"} + İY ${iyOver05 > 55 ? "0.5 Üst" : "0.5 Alt"}`} />
-            <OtherRow icon="📍" title="Canlı Tercih" sub="AI senaryosu" value={over25 > 60 ? "Üst" : "1X"} />
-            <OtherRow icon="⚡" title="Canlı Strateji" sub="İlk 20 dakika" value="İzle" />
-
-            <div className="mt-3 rounded-lg border border-blue-400/20 bg-blue-500/10 px-4 py-3 text-xs leading-5 text-blue-100">
-              İlk 15-20 dakikada tempo düşük ve ceza sahası aksiyonu azsa ana taraf güçlenir.
-              Erken gol gelirse yeniden değerlendirilir.
-            </div>
-
-            <div className="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-[#171d2b] p-3 text-center text-xs">
-              <div>
-                <div className="text-slate-500">1</div>
-                <b className="text-white">{match.odd || "2.10"}</b>
-              </div>
-              <div>
-                <div className="text-slate-500">X</div>
-                <b className="text-white">3.10</b>
-              </div>
-              <div>
-                <div className="text-slate-500">2</div>
-                <b className="text-white">3.70</b>
-              </div>
-            </div>
-          </Panel>
-        </div>
-
-        <Panel title="NEDEN BU TAHMİN?">
-          <div className="space-y-3 text-sm leading-6 text-slate-300">
-            <p>• Bu oran aralığında benzer maç bulundu ve model ana senaryoyu öne çıkardı.</p>
-            <p>• Ev sahibi / deplasman oran dengesi, maç temposu ve gol profili birlikte değerlendirildi.</p>
-            <p>• Ortalama toplam gol profili: <b className="text-white">{match.goal_profile || "Düşük Gollü"}</b>.</p>
-            <p>• Maç tipi: <b className="text-white">{match.match_type || "Sürpriz Açık"}</b>.</p>
-            <p>• AI analize göre en mantıklı canlı kontrol noktası ilk 15-20 dakika tempo ve ceza sahası aksiyonu.</p>
-          </div>
-        </Panel>
-
-        <div className="mt-3 rounded-xl border border-white/10 bg-[#0b111c] p-4 shadow-xl">
-          <h2 className="mb-2 text-sm font-black uppercase tracking-widest text-white">
-            BENZER ORANLI GEÇMİŞ MAÇLAR (SON 10)
-          </h2>
-          <p className="mb-3 text-xs text-slate-400">
-            Tablodaki maçlar seçili oran aralığına yakın bulunan benzer maçlardır.
-          </p>
-
-          <div className="overflow-hidden rounded-xl border border-white/10">
-            <div className="grid grid-cols-[130px_1fr_1fr_110px_110px_100px_100px_100px] bg-[#171d2b] px-3 py-2 text-xs font-black text-slate-400">
-              <div>Tarih</div>
-              <div>Ev Sahibi</div>
-              <div>Deplasman</div>
-              <div>İY Sonuç</div>
-              <div>MS Sonuç</div>
-              <div>2.5 Gol</div>
-              <div>KG</div>
-              <div>HT/FT</div>
-            </div>
-
-            {similarMatches.map((r, i) => (
-              <div
-                key={i}
-                className="grid grid-cols-[130px_1fr_1fr_110px_110px_100px_100px_100px] border-t border-white/10 px-3 py-2 text-xs hover:bg-[#151f33]"
+        <section className="min-w-0 p-4">
+          <div className="w-full">
+            <div className="mb-3 flex items-center justify-between rounded-xl bg-[#0b111c] px-4 py-3 shadow-xl">
+              <Link
+                href="/"
+                className="rounded-lg border border-white/10 px-3 py-2 text-xs font-black text-white hover:border-yellow-400/50"
               >
-                <div className="text-slate-300">{r[0]}</div>
-                <div className="font-bold text-white">{r[1]}</div>
-                <div className="font-bold text-white">{r[2]}</div>
-                <div className="text-slate-300">{r[3]}</div>
-                <div className="text-slate-300">{r[4]}</div>
-                <div className={r[5] === "Üst" ? "font-black text-emerald-400" : "font-black text-red-400"}>
-                  {r[5]}
-                </div>
-                <div className={r[6] === "Var" ? "font-black text-emerald-400" : "font-black text-red-400"}>
-                  {r[6]}
-                </div>
-                <div className="font-black text-yellow-300">{r[7]}</div>
-              </div>
-            ))}
-          </div>
-        </div>
+                ← Ana Sayfa
+              </Link>
 
-        <footer className="mt-3 rounded-xl border border-red-400/30 bg-red-500/10 p-4 text-xs leading-6 text-red-200">
-          <b>⚠️ Yasal Uyarı:</b> Bu platform yalnızca istatistiksel analizler,
-          geçmiş veri karşılaştırmaları ve yapay zekâ destekli tahminler sunar.
-          Kesin kazanç garantisi verilmez.
-        </footer>
+              <div className="text-center">
+                <div className="text-xs font-black uppercase tracking-widest text-yellow-400">
+                  Maç Detay Analizi
+                </div>
+                <h1 className="text-2xl font-black text-white">
+                  {match.home_team} - {match.away_team}
+                </h1>
+                <p className="text-xs text-slate-400">
+                  {match.league || "Lig"} • {match.time || "20:00"}
+                </p>
+              </div>
+
+              <div className="rounded-lg bg-yellow-400 px-3 py-2 text-xs font-black text-black">
+                {match.odd || "1.85"} Oran
+              </div>
+            </div>
+
+            <div className="mb-3 grid gap-3 lg:grid-cols-3">
+              <TopCard title="ANA TAHMİN" value={match.main_pick || match.selection || "-"} sub="Maç sonucu / market önerisi" color="green" />
+              <TopCard title="GÜVEN SKORU" value={`%${score}`} sub="AI güven oranı" color="blue" />
+              <TopCard title="TAHMİNİ SKOR" value={match.expected_score || "1 - 0"} sub="En olası skor" color="dark" />
+            </div>
+
+            <div className="mb-3 rounded-xl bg-[#0b111c] px-4 py-3 text-xs text-slate-300 shadow-xl">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  Kullanılan tolerans: <b className="text-white">0.08</b> • Örneklem:{" "}
+                  <b className="text-white">10 maç</b> • Güven çarpanı:{" "}
+                  <b className="text-white">1.0</b>
+                </div>
+                <div>
+                  Maç tipi: <b className="text-yellow-300">{match.match_type || "Sürpriz Açık"}</b> • Gol profili:{" "}
+                  <b className="text-yellow-300">{match.goal_profile || "Düşük Gollü"}</b>
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-3 grid gap-3 xl:grid-cols-2">
+              <Panel title="MAÇ TAHMİNLERİ">
+                <MiniMarket icon="🏆" title="Maç Sonucu" sub="1X2" items={[["1", ms.one], ["X", ms.x], ["2", ms.two]]} />
+                <MiniMarket icon="⚽" title="2.5 Üst/Alt" sub="Toplam Gol" items={[["Üst", over25], ["Alt", under25]]} />
+                <MiniMarket icon="🤝" title="Karşılıklı Gol" sub="Var / Yok" items={[["Var", kgVar], ["Yok", kgYok]]} />
+                <MiniMarket icon="⏱️" title="İlk Yarı Sonucu" sub="1X2" items={[["1", iy1], ["X", iyX], ["2", iy2]]} />
+                <MiniMarket icon="🕐" title="İlk Yarı 0.5 Üst/Alt" sub="İY gol" items={[["Üst", iyOver05], ["Alt", iyUnder05]]} />
+
+                <div className="mt-4 flex items-center justify-between rounded-xl bg-[#171d2b] px-4 py-3">
+                  <span className="text-xs font-black uppercase tracking-widest text-slate-400">
+                    Risk Seviyesi
+                  </span>
+                  <span className={`rounded-lg px-4 py-2 text-xs font-black ${riskColor}`}>
+                    {risk}
+                  </span>
+                </div>
+              </Panel>
+
+              <Panel title="DİĞER ÖNERİLER">
+                <OtherRow icon="🔁" title="HT/FT" sub="İlk Yarı / Maç Sonu" value={ms.one > ms.two ? "X/1" : "X/2"} />
+                <OtherRow icon="🌐" title="Toplam Gol 3.5" sub="Tahmini gol sayısı" value={over25 > 60 ? "Alt %64" : "Alt %84"} />
+                <OtherRow icon="⏱️" title="İlk Yarı / 0.5 Üst" sub="İlk yarı toplam gol" value={iyOver05 > 55 ? "Üst %56" : "Alt %54"} />
+                <OtherRow icon="🤝" title="Karşılıklı Gol" sub="KG Var / Yok" value={kgVar > kgYok ? "Var %57" : "Yok %67"} />
+                <OtherRow icon="🎯" title="Güçlü Kombo" sub="Premium" value={`${match.main_pick || "2.5 Alt"} + KG ${kgVar > kgYok ? "Var" : "Yok"}`} />
+                <OtherRow icon="🧩" title="En Uyumlu Senaryo" sub="Model özeti" value={`${match.main_pick || "2.5 Alt"} + İY ${iyOver05 > 55 ? "0.5 Üst" : "0.5 Alt"}`} />
+                <OtherRow icon="📍" title="Canlı Tercih" sub="AI senaryosu" value={over25 > 60 ? "Üst" : "1X"} />
+                <OtherRow icon="⚡" title="Canlı Strateji" sub="İlk 20 dakika" value="İzle" />
+
+                <div className="mt-3 rounded-lg border border-blue-400/20 bg-blue-500/10 px-4 py-3 text-xs leading-5 text-blue-100">
+                  İlk 15-20 dakikada tempo düşük ve ceza sahası aksiyonu azsa ana taraf güçlenir.
+                  Erken gol gelirse yeniden değerlendirilir.
+                </div>
+              </Panel>
+            </div>
+
+            <Panel title="NEDEN BU TAHMİN?">
+              <div className="space-y-3 text-sm leading-6 text-slate-300">
+                <p>• Bu oran aralığında benzer maç bulundu ve model ana senaryoyu öne çıkardı.</p>
+                <p>• Ev sahibi / deplasman oran dengesi, maç temposu ve gol profili birlikte değerlendirildi.</p>
+                <p>• Ortalama toplam gol profili: <b className="text-white">{match.goal_profile || "Düşük Gollü"}</b>.</p>
+                <p>• Maç tipi: <b className="text-white">{match.match_type || "Sürpriz Açık"}</b>.</p>
+                <p>• AI analize göre en mantıklı canlı kontrol noktası ilk 15-20 dakika tempo ve ceza sahası aksiyonu.</p>
+              </div>
+            </Panel>
+
+            <div className="mt-3 rounded-xl border border-white/10 bg-[#0b111c] p-4 shadow-xl">
+              <h2 className="mb-2 text-sm font-black uppercase tracking-widest text-white">
+                BENZER ORANLI GEÇMİŞ MAÇLAR (SON 10)
+              </h2>
+              <p className="mb-3 text-xs text-slate-400">
+                Tablodaki maçlar seçili oran aralığına yakın bulunan benzer maçlardır.
+              </p>
+
+              <div className="overflow-hidden rounded-xl border border-white/10">
+                <div className="grid grid-cols-[130px_1fr_1fr_110px_110px_100px_100px_100px] bg-[#171d2b] px-3 py-2 text-xs font-black text-slate-400">
+                  <div>Tarih</div>
+                  <div>Ev Sahibi</div>
+                  <div>Deplasman</div>
+                  <div>İY Sonuç</div>
+                  <div>MS Sonuç</div>
+                  <div>2.5 Gol</div>
+                  <div>KG</div>
+                  <div>HT/FT</div>
+                </div>
+
+                {similarMatches.map((r, i) => (
+                  <div
+                    key={i}
+                    className="grid grid-cols-[130px_1fr_1fr_110px_110px_100px_100px_100px] border-t border-white/10 px-3 py-2 text-xs hover:bg-[#151f33]"
+                  >
+                    <div className="text-slate-300">{r[0]}</div>
+                    <div className="font-bold text-white">{r[1]}</div>
+                    <div className="font-bold text-white">{r[2]}</div>
+                    <div className="text-slate-300">{r[3]}</div>
+                    <div className="text-slate-300">{r[4]}</div>
+                    <div className={r[5] === "Üst" ? "font-black text-emerald-400" : "font-black text-red-400"}>
+                      {r[5]}
+                    </div>
+                    <div className={r[6] === "Var" ? "font-black text-emerald-400" : "font-black text-red-400"}>
+                      {r[6]}
+                    </div>
+                    <div className="font-black text-yellow-300">{r[7]}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <footer className="mt-3 rounded-xl border border-red-400/30 bg-red-500/10 p-4 text-xs leading-6 text-red-700">
+              <b>⚠️ Yasal Uyarı:</b> Bu platform yalnızca istatistiksel analizler,
+              geçmiş veri karşılaştırmaları ve yapay zekâ destekli tahminler sunar.
+              Kesin kazanç garantisi verilmez.
+            </footer>
+          </div>
+        </section>
       </div>
     </main>
   );
+}
+
+function Sidebar() {
+  return (
+    <aside className="sticky top-0 flex h-screen flex-col justify-between border-r border-white/10 bg-[#0b111c] text-white shadow-xl">
+      <div className="p-4">
+        <Link href="/" className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-yellow-400 text-xl font-black text-black">
+            O
+          </div>
+          <div>
+            <div className="text-sm font-black tracking-[0.22em] text-yellow-400">
+              ORAN ANALİZ
+            </div>
+            <div className="text-xs font-bold text-slate-400">AI Match Engine</div>
+          </div>
+        </Link>
+
+        <div className="mt-8 space-y-2">
+          <SidebarItem icon="🏠" label="Ana Sayfa" href="/" />
+          <SidebarItem icon="⭐" label="Favoriler" />
+          <SidebarItem icon="🎫" label="Kuponlarım" />
+          <SidebarItem icon="📊" label="Analiz Geçmişi" />
+        </div>
+      </div>
+
+      <div className="border-t border-white/10 p-4">
+        <div className="mb-3 text-xs leading-5 text-slate-400">
+          Giriş yaparak kuponlarını ve analiz geçmişini kaydedebilirsin.
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <Link
+            href="/"
+            className="rounded-lg border border-white/10 bg-[#111827] py-2 text-center text-sm font-bold hover:bg-[#172238]"
+          >
+            Giriş Yap
+          </Link>
+
+          <Link
+            href="/"
+            className="rounded-lg bg-yellow-400 py-2 text-center text-sm font-black text-black hover:bg-yellow-300"
+          >
+            Üye Ol
+          </Link>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function SidebarItem({ icon, label, href }: any) {
+  const content = (
+    <div className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold text-slate-300 hover:bg-[#172238] hover:text-white">
+      <span>{icon}</span>
+      <span>{label}</span>
+    </div>
+  );
+
+  if (href) return <Link href={href}>{content}</Link>;
+  return content;
 }
 
 function TopCard({ title, value, sub, color }: any) {
