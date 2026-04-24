@@ -13,27 +13,55 @@ Kullanıcılar kendi kararlarını kendileri verir. Bu platform üzerinden doğr
 
 Bahis oynamak risk içerir ve maddi kayıplara yol açabilir.`;
 
-const LEAGUES = [
-  "🏆 Tüm Ligler",
-  "🇹🇷 Süper Lig",
-  "🇬🇧 Premier League",
-  "🇪🇸 La Liga",
-  "🇮🇹 Serie A",
-  "🇩🇪 Bundesliga",
-  "🇫🇷 Ligue 1",
-  "🇳🇱 Eredivisie",
-  "🇵🇹 Portekiz Ligi",
-  "🇧🇪 Belçika Ligi",
-  "🇺🇸 MLS",
-  "🇩🇰 Danimarka Ligi",
-  "🇸🇦 Suudi Arabistan",
-  "🇷🇴 Romanya Ligi",
-  "🇦🇪 BAE Ligi",
-  "🌍 Avrupa Kupaları",
-];
+const LEAGUE_MAP: Record<string, string> = {
+  "Şampiyonlar Ligi": "🏆",
+  "Avrupa Ligi": "🟠",
+  "Konferans Ligi": "🟢",
+  "Süper Lig": "🇹🇷",
+  "Premier League": "🏴",
+  "Championship": "🏴",
+  "League 1": "🏴",
+  "League 2": "🏴",
+  "FA Cup": "🏴",
+  "EFL Cup": "🏴",
+  "La Liga": "🇪🇸",
+  "La Liga 2": "🇪🇸",
+  "Copa del Rey": "🇪🇸",
+  "Bundesliga": "🇩🇪",
+  "Bundesliga 2": "🇩🇪",
+  "DFB-Pokal": "🇩🇪",
+  "Serie A": "🇮🇹",
+  "Serie B": "🇮🇹",
+  "Coppa Italia": "🇮🇹",
+  "Ligue 1": "🇫🇷",
+  "Ligue 2": "🇫🇷",
+  "Coupe de France": "🇫🇷",
+  "Hollanda": "🇳🇱",
+  "Belçika": "🇧🇪",
+  "Portekiz": "🇵🇹",
+  "İskoçya": "🏴",
+  "Danimarka": "🇩🇰",
+  "Avusturya": "🇦🇹",
+  "İsviçre": "🇨🇭",
+  "İsveç": "🇸🇪",
+  "Norveç": "🇳🇴",
+  "Polonya": "🇵🇱",
+  "Finlandiya": "🇫🇮",
+  "İrlanda": "🇮🇪",
+  "Yunanistan": "🇬🇷",
+  "MLS": "🇺🇸",
+  "Brezilya Serie A": "🇧🇷",
+  "Arjantin Primera": "🇦🇷",
+  "Japonya J League": "🇯🇵",
+  "Meksika Liga MX": "🇲🇽",
+  "Güney Kore K League 1": "🇰🇷",
+  "Şili Primera": "🇨🇱",
+};
+
+const LEAGUES = ["🏆 Tüm Ligler", ...Object.entries(LEAGUE_MAP).map(([name, icon]) => `${icon} ${name}`)];
 
 const DATE_OPTIONS = ["Bugün", "Yarın", "2 Gün Sonra", "3 Gün Sonra", "Özel Tarih"];
-const SEASONS = ["2324", "2425", "2526"];
+const SEASONS = ["2122", "2223", "2324", "2425", "2526"];
 
 function todayText() {
   return new Intl.DateTimeFormat("tr-TR", {
@@ -50,21 +78,38 @@ function safePercent(v: any) {
   return Math.max(0, Math.min(100, Math.round(n)));
 }
 
+function formatTolerance(v: number) {
+  return (v / 100).toFixed(2);
+}
+
+function calcPlayableScore(m: Match) {
+  const confidence = safePercent(m.pro_score);
+  const sample = Math.min(100, Number(m.sample_count || 0) * 4);
+  const toleranceBonus = Array.isArray(m.tolerance_hits) ? m.tolerance_hits.length * 4 : 0;
+  const comboBonus = m.combo_pick ? 6 : 0;
+
+  return Math.max(
+    1,
+    Math.min(100, Math.round(confidence * 0.62 + sample * 0.25 + toleranceBonus + comboBonus))
+  );
+}
+
 export default function HomePage() {
   const [scanner, setScanner] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [coupon, setCoupon] = useState<Match[]>([]);
   const [error, setError] = useState("");
-  const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  const [authMode, setAuthMode] = useState<"login" | "register" | null>(null);
   const [termsOpen, setTermsOpen] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [dateOption, setDateOption] = useState("Bugün");
   const [selectedLeagues, setSelectedLeagues] = useState<string[]>(["🏆 Tüm Ligler"]);
-  const [selectedSeasons, setSelectedSeasons] = useState<string[]>(["2324", "2425", "2526"]);
+  const [selectedSeasons, setSelectedSeasons] = useState<string[]>(["2122", "2223", "2324", "2425", "2526"]);
   const [query, setQuery] = useState("");
   const [confidenceFilter, setConfidenceFilter] = useState<"all" | "high" | "mid" | "risk">("all");
+  const [tolerance, setTolerance] = useState(8);
 
   const matches: Match[] = scanner?.top_matches || [];
 
@@ -89,14 +134,19 @@ export default function HomePage() {
           away_team: "Fenerbahçe",
           league: "Süper Lig",
           time: "20:00",
-          main_pick: "2.5 Alt",
-          selection: "2.5 Alt",
+          main_pick: "MS 1",
+          alternative_pick: "2.5 Üst",
+          combo_pick: "MS 1 + 2.5 Üst",
+          combo_fit: true,
+          selection: "2.5 Üst",
           market: "ALT/ÜST",
           pro_score: 76,
           odd: 1.85,
-          match_type: "Sürpriz Açık",
-          goal_profile: "Düşük Gollü",
-          expected_score: "1 - 0",
+          sample_count: 18,
+          tolerance_hits: ["0.05", "0.08", "0.10"],
+          match_type: "Favori",
+          goal_profile: "Yüksek Tempo",
+          expected_score: "2 - 1",
         },
         {
           home_team: "Real Madrid",
@@ -104,10 +154,15 @@ export default function HomePage() {
           league: "La Liga",
           time: "22:00",
           main_pick: "KG Var",
+          alternative_pick: "2.5 Üst",
+          combo_pick: "KG Var + 2.5 Üst",
+          combo_fit: true,
           selection: "KG Var",
           market: "KG",
           pro_score: 72,
           odd: 1.95,
+          sample_count: 14,
+          tolerance_hits: ["0.08", "0.10", "0.15"],
           match_type: "Dengeli Derbi",
           goal_profile: "Açık Oyun",
           expected_score: "2 - 2",
@@ -118,10 +173,15 @@ export default function HomePage() {
           league: "Premier League",
           time: "18:30",
           main_pick: "2.5 Üst",
+          alternative_pick: "KG Var",
+          combo_pick: "KG Var + 2.5 Üst",
+          combo_fit: true,
           selection: "3.5 Üst",
           market: "ALT/ÜST",
           pro_score: 81,
           odd: 1.7,
+          sample_count: 22,
+          tolerance_hits: ["0.00", "0.05", "0.08", "0.10"],
           match_type: "Yüksek Kalite",
           goal_profile: "Bol Gol",
           expected_score: "3 - 1",
@@ -132,10 +192,15 @@ export default function HomePage() {
           league: "Ligue 1",
           time: "21:45",
           main_pick: "MS 1",
+          alternative_pick: "1.5 Üst",
+          combo_pick: "MS 1 + 1.5 Üst",
+          combo_fit: true,
           selection: "2.5 Üst",
           market: "ALT/ÜST",
           pro_score: 65,
           odd: 1.6,
+          sample_count: 10,
+          tolerance_hits: ["0.10", "0.15"],
           match_type: "Favori",
           goal_profile: "Orta-Yüksek",
           expected_score: "2 - 0",
@@ -146,10 +211,15 @@ export default function HomePage() {
           league: "Bundesliga",
           time: "19:30",
           main_pick: "KG Var",
+          alternative_pick: "3.5 Üst",
+          combo_pick: "KG Var + 2.5 Üst",
+          combo_fit: true,
           selection: "KG Var",
           market: "KG",
           pro_score: 54,
           odd: 1.9,
+          sample_count: 7,
+          tolerance_hits: ["0.15", "0.20"],
           match_type: "Riskli Derbi",
           goal_profile: "Gollü",
           expected_score: "2 - 1",
@@ -160,10 +230,15 @@ export default function HomePage() {
           league: "Serie A",
           time: "21:45",
           main_pick: "2.5 Alt",
+          alternative_pick: "KG Yok",
+          combo_pick: "2.5 Alt + KG Yok",
+          combo_fit: false,
           selection: "2.5 Alt",
           market: "ALT/ÜST",
           pro_score: 49,
           odd: 2.1,
+          sample_count: 5,
+          tolerance_hits: ["0.20", "0.30"],
           match_type: "Dengeli",
           goal_profile: "Düşük Tempo",
           expected_score: "1 - 1",
@@ -171,13 +246,18 @@ export default function HomePage() {
         {
           home_team: "Benfica",
           away_team: "Porto",
-          league: "Portekiz Ligi",
+          league: "Portekiz",
           time: "23:00",
           main_pick: "1X",
+          alternative_pick: "2.5 Alt",
+          combo_pick: "1X + 2.5 Alt",
+          combo_fit: true,
           selection: "1X",
           market: "Çifte Şans",
           pro_score: 69,
           odd: 1.42,
+          sample_count: 16,
+          tolerance_hits: ["0.05", "0.10"],
           match_type: "Ev Sahibi Avantaj",
           goal_profile: "Kontrollü",
           expected_score: "1 - 0",
@@ -185,19 +265,31 @@ export default function HomePage() {
         {
           home_team: "Ajax",
           away_team: "PSV",
-          league: "Eredivisie",
+          league: "Hollanda",
           time: "17:30",
           main_pick: "2.5 Üst",
+          alternative_pick: "KG Var",
+          combo_pick: "KG Var + 2.5 Üst",
+          combo_fit: true,
           selection: "KG Var",
           market: "Gol",
           pro_score: 74,
           odd: 1.78,
+          sample_count: 20,
+          tolerance_hits: ["0.00", "0.05", "0.10"],
           match_type: "Açık Oyun",
           goal_profile: "Yüksek Tempo",
           expected_score: "2 - 2",
         },
       ],
     };
+
+    fakeData.top_matches = fakeData.top_matches
+      .map((m) => ({
+        ...m,
+        playable_score: calcPlayableScore(m),
+      }))
+      .sort((a, b) => b.playable_score - a.playable_score || b.pro_score - a.pro_score);
 
     setTimeout(() => {
       setScanner(fakeData);
@@ -230,7 +322,9 @@ export default function HomePage() {
       setError("Üye olmak için kullanım şartlarını ve yasal uyarıları kabul etmelisin.");
       return;
     }
+
     setUserEmail("demo@orananaliz.ai");
+    setAuthMode(null);
     setError("");
   }
 
@@ -265,13 +359,19 @@ export default function HomePage() {
   );
 
   const filteredMatches = useMemo(() => {
-    return matches.filter((m) => {
-      const s = safePercent(m.pro_score);
-      if (confidenceFilter === "high") return s >= 70;
-      if (confidenceFilter === "mid") return s >= 55 && s < 70;
-      if (confidenceFilter === "risk") return s < 55;
-      return true;
-    });
+    return matches
+      .filter((m) => {
+        const s = safePercent(m.pro_score);
+        if (confidenceFilter === "high") return s >= 70;
+        if (confidenceFilter === "mid") return s >= 55 && s < 70;
+        if (confidenceFilter === "risk") return s < 55;
+        return true;
+      })
+      .sort((a, b) => {
+        const ap = Number(a.playable_score || calcPlayableScore(a));
+        const bp = Number(b.playable_score || calcPlayableScore(b));
+        return bp - ap || safePercent(b.pro_score) - safePercent(a.pro_score);
+      });
   }, [matches, confidenceFilter]);
 
   const couponOdd = useMemo(() => {
@@ -323,6 +423,8 @@ export default function HomePage() {
                 {scanner?.total_matches || 0} maç analiz edildi.
                 <br />
                 Ortalama güven: %{averageScore}
+                <br />
+                Hassasiyet: {formatTolerance(tolerance)}
               </div>
             </div>
           </div>
@@ -412,7 +514,7 @@ export default function HomePage() {
                     Kontrol Paneli
                   </h2>
                   <p className="text-xs text-slate-400">
-                    {dateOption} • {leagueSummary} • {seasonSummary} • Oran hassasiyeti 8%
+                    {dateOption} • {leagueSummary} • {seasonSummary} • Oran hassasiyeti {formatTolerance(tolerance)}
                   </p>
                 </div>
 
@@ -432,10 +534,11 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <div className="grid gap-2 md:grid-cols-[1fr_1fr_1fr_auto]">
+              <div className="grid gap-2 md:grid-cols-[1fr_1fr_1fr_1fr_auto]">
                 <MiniInfo label="Tarih" value={dateOption} />
                 <MiniInfo label="Lig" value={leagueSummary} />
                 <MiniInfo label="Sezon" value={seasonSummary} />
+                <MiniInfo label="Hassasiyet" value={formatTolerance(tolerance)} />
                 <button
                   onClick={() => setFilterOpen(true)}
                   className="rounded-lg bg-yellow-400 px-4 py-3 text-xs font-black text-black hover:bg-yellow-300"
@@ -452,7 +555,7 @@ export default function HomePage() {
                     Maç Listesi
                   </h2>
                   <p className="text-xs text-slate-400">
-                    Kompakt analiz görünümü • {filteredMatches.length} maç gösteriliyor
+                    Puan + güvene göre sıralı • {filteredMatches.length} maç gösteriliyor
                   </p>
                 </div>
 
@@ -474,6 +577,7 @@ export default function HomePage() {
               <div className="grid gap-2">
                 {filteredMatches.map((m, i) => {
                   const score = safePercent(m.pro_score);
+                  const playableScore = Number(m.playable_score || calcPlayableScore(m));
                   const risky = score < 55;
                   const realIndex = matches.findIndex(
                     (x) => x.home_team === m.home_team && x.away_team === m.away_team
@@ -482,7 +586,7 @@ export default function HomePage() {
                   return (
                     <div
                       key={`${m.home_team}-${m.away_team}-${i}`}
-                      className="grid grid-cols-[80px_2fr_150px_110px_100px_130px_150px] items-center gap-3 rounded-xl border border-white/10 bg-[#111827] px-4 py-3 text-sm shadow hover:bg-[#151f33]"
+                      className="grid grid-cols-[78px_2fr_210px_100px_100px_115px_150px] items-center gap-3 rounded-xl border border-white/10 bg-[#111827] px-4 py-3 text-sm shadow hover:bg-[#151f33]"
                     >
                       <div className="text-center">
                         <div className="font-black text-white">{m.time || "20:00"}</div>
@@ -496,12 +600,46 @@ export default function HomePage() {
                         <div className="text-[11px] text-slate-400">
                           {m.league || "Lig"} • {m.match_type || "Maç tipi"} • {m.goal_profile || "Gol profili"}
                         </div>
+
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {(m.tolerance_hits || []).map((hit: string) => (
+                            <span
+                              key={hit}
+                              className="rounded-md border border-yellow-400/20 bg-yellow-400/10 px-2 py-1 text-[10px] font-black text-yellow-300"
+                            >
+                              {hit}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="mb-1 flex flex-wrap gap-1">
+                          <span className="rounded-lg bg-yellow-400 px-3 py-1 text-xs font-black text-black">
+                            {m.main_pick || m.selection || "-"}
+                          </span>
+                          <span className="rounded-lg border border-white/10 bg-[#0b111c] px-3 py-1 text-xs font-black text-slate-200">
+                            Alt: {m.alternative_pick || "-"}
+                          </span>
+                        </div>
+
+                        {m.combo_pick && (
+                          <div
+                            className={
+                              m.combo_fit
+                                ? "w-fit rounded-md bg-emerald-500/15 px-2 py-1 text-[10px] font-black text-emerald-300"
+                                : "w-fit rounded-md bg-red-500/15 px-2 py-1 text-[10px] font-black text-red-300"
+                            }
+                          >
+                            {m.combo_fit ? "Uyumlu Kombo: " : "Riskli Kombo: "}
+                            {m.combo_pick}
+                          </div>
+                        )}
                       </div>
 
                       <div className="text-center">
-                        <div className="rounded-lg bg-yellow-400 px-3 py-2 text-xs font-black text-black">
-                          {m.main_pick || m.selection || "-"}
-                        </div>
+                        <div className="text-lg font-black text-white">%{playableScore}</div>
+                        <div className="text-[10px] text-slate-500">Puan</div>
                       </div>
 
                       <div className="text-center">
@@ -517,13 +655,9 @@ export default function HomePage() {
                       </div>
 
                       <div className="text-center">
-                        <div className="font-black text-white">{m.odd || "-"}</div>
-                        <div className="text-[10px] text-slate-500">Oran</div>
-                      </div>
-
-                      <div className="text-center">
-                        <div className="font-black text-white">{m.expected_score || "1 - 0"}</div>
-                        <div className="text-[10px] text-slate-500">Tahmini skor</div>
+                        <div className="font-black text-white">{m.sample_count || 0}</div>
+                        <div className="text-[10px] text-slate-500">Örnek maç</div>
+                        <div className="mt-1 font-black text-yellow-300">{m.odd || "-"}</div>
                       </div>
 
                       <div className="flex justify-end gap-2">
@@ -582,7 +716,7 @@ export default function HomePage() {
                 <div>
                   <div className="font-bold">{m.home_team} - {m.away_team}</div>
                   <div className="text-xs text-yellow-400">
-                    {m.selection || m.main_pick} • {m.odd || "-"}
+                    {m.combo_pick || m.selection || m.main_pick} • {m.odd || "-"}
                   </div>
                 </div>
 
@@ -605,12 +739,12 @@ export default function HomePage() {
 
       {filterOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
-          <div className="w-full max-w-5xl rounded-2xl border border-yellow-400/20 bg-[#0b111c] p-6 text-white shadow-2xl">
+          <div className="w-full max-w-6xl rounded-2xl border border-yellow-400/20 bg-[#0b111c] p-6 text-white shadow-2xl">
             <div className="mb-5 flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-black">Tarih, Lig ve Sezon Seçimi</h2>
+                <h2 className="text-2xl font-black">Tarih, Lig, Sezon ve Hassasiyet</h2>
                 <p className="text-sm text-slate-400">
-                  Analiz yapılacak günü, sezonu ve ligleri seç.
+                  Analiz yapılacak günü, ligleri, sezonları ve oran hassasiyetini seç.
                 </p>
               </div>
               <button
@@ -621,7 +755,7 @@ export default function HomePage() {
               </button>
             </div>
 
-            <div className="grid gap-5 lg:grid-cols-[0.75fr_0.75fr_1.2fr]">
+            <div className="grid gap-5 lg:grid-cols-[0.8fr_0.8fr_1fr_1.4fr]">
               <div className="rounded-xl border border-white/10 bg-[#111827] p-4">
                 <div className="mb-3 text-xs font-black uppercase text-yellow-400">
                   Tarih Seçimi
@@ -669,6 +803,37 @@ export default function HomePage() {
 
               <div className="rounded-xl border border-white/10 bg-[#111827] p-4">
                 <div className="mb-3 text-xs font-black uppercase text-yellow-400">
+                  Oran Hassasiyeti
+                </div>
+
+                <div className="rounded-xl border border-yellow-400/20 bg-yellow-400/10 p-4 text-center">
+                  <div className="text-4xl font-black text-yellow-300">
+                    {formatTolerance(tolerance)}
+                  </div>
+                  <div className="mt-1 text-xs text-slate-400">
+                    0.00 - 0.30 arası
+                  </div>
+                </div>
+
+                <input
+                  type="range"
+                  min={0}
+                  max={30}
+                  step={1}
+                  value={tolerance}
+                  onChange={(e) => setTolerance(Number(e.target.value))}
+                  className="mt-5 w-full accent-yellow-400"
+                />
+
+                <div className="mt-3 flex justify-between text-xs text-slate-500">
+                  <span>0.00</span>
+                  <span>0.15</span>
+                  <span>0.30</span>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-[#111827] p-4">
+                <div className="mb-3 text-xs font-black uppercase text-yellow-400">
                   Lig Seçimi
                 </div>
 
@@ -679,7 +844,7 @@ export default function HomePage() {
                   className="mb-3 w-full rounded-lg border border-white/10 bg-[#0b111c] px-4 py-3 text-sm outline-none focus:border-yellow-400/60"
                 />
 
-                <div className="max-h-80 overflow-y-auto pr-2">
+                <div className="max-h-96 overflow-y-auto pr-2">
                   {filteredLeagues.map((league) => (
                     <label
                       key={league}
@@ -712,8 +877,11 @@ export default function HomePage() {
         <AuthModal
           title="Giriş Yap"
           button="Giriş Yap"
-          onClose={() => setAuthMode("login")}
-          onSubmit={() => setUserEmail("demo@orananaliz.ai")}
+          onClose={() => setAuthMode(null)}
+          onSubmit={() => {
+            setUserEmail("demo@orananaliz.ai");
+            setAuthMode(null);
+          }}
           showTerms={false}
           acceptedTerms={acceptedTerms}
           setAcceptedTerms={setAcceptedTerms}
@@ -725,7 +893,7 @@ export default function HomePage() {
         <AuthModal
           title="Üye Ol"
           button="Üyeliği Oluştur"
-          onClose={() => setAuthMode("login")}
+          onClose={() => setAuthMode(null)}
           onSubmit={register}
           showTerms
           acceptedTerms={acceptedTerms}
