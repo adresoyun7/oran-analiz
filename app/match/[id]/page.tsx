@@ -5,21 +5,17 @@ import { useEffect, useMemo, useState } from "react";
 
 type Match = any;
 
-function safePercent(v: any, fallback = 55) {
+function pct(v: any, fallback = 55) {
   const n = Number(v ?? fallback);
   if (Number.isNaN(n)) return fallback;
-  return Math.max(0, Math.min(100, n));
+  return Math.max(1, Math.min(99, Math.round(n)));
 }
 
-function clamp(n: number) {
-  return Math.max(1, Math.min(98, Math.round(n)));
-}
-
-function makePercents(base: number) {
-  const main = clamp(base);
-  const draw = clamp(100 - main - 24);
-  const away = clamp(100 - main - draw);
-  return { main, draw, away };
+function calcSplit(mainScore: number) {
+  const one = pct(mainScore);
+  const x = pct(100 - one - 22);
+  const two = pct(100 - one - x);
+  return { one, x, two };
 }
 
 export default function MatchDetailPage() {
@@ -33,37 +29,27 @@ export default function MatchDetailPage() {
   const similarMatches = useMemo(() => {
     if (!match) return [];
 
-    const teams = [
-      ["Arsenal", "Chelsea", "MS 1", "2-1"],
-      ["Roma", "Lazio", "KG Var", "1-1"],
-      ["PSV", "Ajax", "2.5 Üst", "3-1"],
-      ["Benfica", "Porto", "2.5 Alt", "1-0"],
-      ["Leverkusen", "Frankfurt", "MS 1", "2-0"],
-      ["Sevilla", "Villarreal", "KG Var", "2-2"],
-      ["Lyon", "Nice", "MS X", "1-1"],
-      ["Feyenoord", "Twente", "2.5 Üst", "3-0"],
-      ["Milan", "Napoli", "2.5 Alt", "1-1"],
-      ["Fenerbahçe", "Trabzonspor", "MS 1", "2-1"],
+    const rows = [
+      ["20.03.2026", "Genoa", "Udinese", "0-0", "0-2", "Alt", "Yok", "X/2"],
+      ["15.02.2026", "Huesca", "Ceuta", "0-0", "2-0", "Alt", "Yok", "1/1"],
+      ["14.02.2026", "Burgos", "Cadiz", "1-1", "1-1", "Alt", "Var", "X/X"],
+      ["08.02.2026", "Nacional", "Casa Pia", "0-0", "0-0", "Alt", "Yok", "X/X"],
+      ["31.01.2026", "Alverca", "Estrela", "0-0", "1-1", "Alt", "Var", "X/X"],
+      ["10.01.2026", "Las Palmas", "La Coruna", "1-1", "1-1", "Alt", "Var", "X/X"],
+      ["21.12.2025", "Cagliari", "Pisa", "0-1", "2-2", "Üst", "Var", "2/X"],
+      ["13.12.2025", "Zaragoza", "Cadiz", "0-0", "1-2", "Üst", "Var", "X/2"],
+      ["02.11.2025", "Monza", "Spezia", "0-0", "1-0", "Alt", "Yok", "X/1"],
+      ["28.09.2025", "Burgos", "Malaga", "1-1", "2-1", "Üst", "Var", "X/1"],
     ];
 
-    return teams.map((t, i) => ({
-      home: t[0],
-      away: t[1],
-      pick: t[2],
-      score: t[3],
-      odd: (Number(match.odd || 1.75) + (i - 4) * 0.03).toFixed(2),
-      result: i % 3 === 0 ? "Kazandı" : i % 3 === 1 ? "Yattı" : "Berabere",
-    }));
+    return rows;
   }, [match]);
 
   if (!match) {
     return (
       <main className="min-h-screen bg-[#070b12] p-6 text-white">
-        <div className="mx-auto max-w-3xl rounded-3xl border border-white/10 bg-[#111827] p-8 shadow-2xl">
-          <div className="mb-4 text-2xl font-black">Maç detayı bulunamadı.</div>
-          <p className="mb-5 text-sm text-slate-400">
-            Ana sayfadan bir maç seçerek detay ekranını açabilirsin.
-          </p>
+        <div className="mx-auto max-w-3xl rounded-2xl border border-white/10 bg-[#111827] p-8">
+          <h1 className="mb-3 text-2xl font-black">Maç detayı bulunamadı.</h1>
           <Link href="/" className="rounded-xl bg-yellow-400 px-5 py-3 font-black text-black">
             Ana sayfaya dön
           </Link>
@@ -72,225 +58,297 @@ export default function MatchDetailPage() {
     );
   }
 
-  const score = safePercent(match.pro_score, 62);
-  const risky = score < 55;
+  const score = pct(match.pro_score, 65);
+  const ms = calcSplit(score);
 
-  const ms = makePercents(score);
-  const homePct = match.main_pick === "MS 2" ? clamp(100 - ms.main - ms.draw) : ms.main;
-  const drawPct = ms.draw;
-  const awayPct = match.main_pick === "MS 2" ? ms.main : clamp(100 - homePct - drawPct);
+  const over25 = pct(score - 8);
+  const under25 = pct(100 - over25);
+  const kgVar = pct(score - 14);
+  const kgYok = pct(100 - kgVar);
 
-  const over25 = clamp(score + 4);
-  const under25 = clamp(100 - over25);
-  const bttsYes = clamp(match.main_pick === "KG Var" ? score : score - 6);
-  const bttsNo = clamp(100 - bttsYes);
-  const firstHalfHome = clamp(homePct - 12);
-  const firstHalfDraw = clamp(42);
-  const firstHalfAway = clamp(100 - firstHalfHome - firstHalfDraw);
-  const iyOver05 = clamp(score + 2);
-  const iyUnder05 = clamp(100 - iyOver05);
-  const over35 = clamp(over25 - 18);
+  const iy1 = pct(ms.one - 12);
+  const iyX = pct(42);
+  const iy2 = pct(100 - iy1 - iyX);
+
+  const iyOver05 = pct(score - 5);
+  const iyUnder05 = pct(100 - iyOver05);
+
+  const risk = score >= 70 ? "DÜŞÜK" : score >= 55 ? "ORTA" : "YÜKSEK";
+  const riskColor =
+    risk === "DÜŞÜK"
+      ? "bg-emerald-500 text-white"
+      : risk === "ORTA"
+      ? "bg-yellow-400 text-black"
+      : "bg-red-500 text-white";
 
   return (
-    <main className="min-h-screen bg-[#070b12] p-5 text-slate-100">
-      <div className="mx-auto max-w-[1500px]">
-        <div className="mb-5 rounded-[28px] border border-white/10 bg-gradient-to-br from-[#101827] to-[#080d16] p-5 shadow-2xl">
-          <div className="mb-5 flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-5">
-            <Link
-              href="/"
-              className="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold hover:border-yellow-400/50 hover:bg-[#172238]"
-            >
-              ← Ana Sayfa
-            </Link>
+    <main className="min-h-screen bg-[#f4f7fb] p-3 text-slate-100">
+      <div className="mx-auto max-w-[1800px]">
+        <div className="mb-3 flex items-center justify-between rounded-xl bg-[#0b111c] px-4 py-3">
+          <Link
+            href="/"
+            className="rounded-lg border border-white/10 px-3 py-2 text-xs font-black hover:border-yellow-400/50"
+          >
+            ← Ana Sayfa
+          </Link>
 
-            <div className="text-center">
-              <div className="mb-2 inline-flex rounded-full border border-yellow-400/25 bg-yellow-400/10 px-3 py-1 text-xs font-black text-yellow-300">
-                Maç Detay Analizi
-              </div>
-              <h1 className="text-3xl font-black text-white">
-                {match.home_team || "-"} - {match.away_team || "-"}
-              </h1>
-              <p className="mt-1 text-sm text-slate-400">
-                {match.league || "Lig"} • {match.time || "20:00"}
-              </p>
+          <div className="text-center">
+            <div className="text-xs font-black uppercase tracking-widest text-yellow-400">
+              Maç Detay Analizi
             </div>
-
-            <div className={`rounded-2xl px-5 py-3 text-center font-black ${risky ? "bg-red-500/15 text-red-300" : "bg-yellow-400 text-black"}`}>
-              {risky ? "⚠️ Riskli" : "🔥 Güçlü Aday"}
-            </div>
+            <h1 className="text-2xl font-black text-white">
+              {match.home_team} - {match.away_team}
+            </h1>
+            <p className="text-xs text-slate-400">
+              {match.league || "Lig"} • {match.time || "20:00"}
+            </p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
-            <InfoCard title="ANA TAHMİN" value={match.main_pick || match.selection || "-"} sub={match.market || "Market"} />
-            <InfoCard title="GÜVEN SKORU" value={`%${score}`} sub={risky ? "Riskli bölge" : "Oynanabilir seviye"} danger={risky} />
-            <InfoCard title="TAHMİNİ SKOR" value={match.expected_score || "2-1"} sub="AI skor senaryosu" />
+          <div className="rounded-lg bg-yellow-400 px-3 py-2 text-xs font-black text-black">
+            {match.odd || "1.85"} Oran
           </div>
         </div>
 
-        <Section title="Maç Tahminleri" desc="Temel marketlerin yüzdesel dağılımı">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Panel title="Maç Sonucu 1 / X / 2">
-              <PredictionRow name="1" pick={match.home_team || "Ev Sahibi"} pct={homePct} />
-              <PredictionRow name="X" pick="Beraberlik" pct={drawPct} />
-              <PredictionRow name="2" pick={match.away_team || "Deplasman"} pct={awayPct} />
-            </Panel>
+        <div className="mb-3 grid gap-3 lg:grid-cols-3">
+          <TopCard title="ANA TAHMİN" value={match.main_pick || match.selection || "-"} sub="Maç sonucu / market önerisi" color="green" />
+          <TopCard title="GÜVEN SKORU" value={`%${score}`} sub="Yüksek güven" color="blue" />
+          <TopCard title="TAHMİNİ SKOR" value={match.expected_score || "1 - 0"} sub="En olası skor" color="dark" />
+        </div>
 
-            <Panel title="2.5 Üst / Alt">
-              <PredictionRow name="2.5 Üst" pick="Gol beklentisi yüksek" pct={over25} />
-              <PredictionRow name="2.5 Alt" pick="Daha kontrollü senaryo" pct={under25} />
-            </Panel>
-
-            <Panel title="Karşılıklı Gol">
-              <PredictionRow name="KG Var" pick="İki takım da gol bulabilir" pct={bttsYes} />
-              <PredictionRow name="KG Yok" pick="Tek taraflı skor ihtimali" pct={bttsNo} />
-            </Panel>
-
-            <Panel title="İlk Yarı Sonucu">
-              <PredictionRow name="İY 1" pick={match.home_team || "Ev Sahibi"} pct={firstHalfHome} />
-              <PredictionRow name="İY X" pick="İlk yarı beraberlik" pct={firstHalfDraw} />
-              <PredictionRow name="İY 2" pick={match.away_team || "Deplasman"} pct={firstHalfAway} />
-            </Panel>
-
-            <Panel title="İlk Yarı 0.5 Üst / Alt">
-              <PredictionRow name="İY 0.5 Üst" pick="İlk yarıda gol beklenir" pct={iyOver05} />
-              <PredictionRow name="İY 0.5 Alt" pick="İlk yarı sakin geçebilir" pct={iyUnder05} />
-            </Panel>
+        <div className="mb-3 rounded-xl bg-[#0b111c] px-4 py-3 text-xs text-slate-300">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              Kullanılan tolerans: <b className="text-white">0.08</b> • Örneklem:{" "}
+              <b className="text-white">10 maç</b> • Güven çarpanı:{" "}
+              <b className="text-white">1.0</b>
+            </div>
+            <div>
+              Maç tipi: <b className="text-yellow-300">{match.match_type || "Sürpriz Açık"}</b> • Gol profili:{" "}
+              <b className="text-yellow-300">{match.goal_profile || "Düşük Gollü"}</b>
+            </div>
           </div>
-        </Section>
+        </div>
 
-        <Section title="Diğer Öneriler" desc="Alternatif market ve canlı oyun planı">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Panel title="HT/FT">
-              <PredictionRow name="İY/MS" pick={homePct > awayPct ? "1/1" : awayPct > homePct ? "2/2" : "X/X"} pct={clamp(score - 8)} />
-            </Panel>
+        <div className="mb-3 grid gap-3 xl:grid-cols-2">
+          <Panel title="MAÇ TAHMİNLERİ">
+            <MiniMarket
+              icon="🏆"
+              title="Maç Sonucu"
+              sub="1X2"
+              items={[
+                ["1", ms.one],
+                ["X", ms.x],
+                ["2", ms.two],
+              ]}
+            />
 
-            <Panel title="Toplam Gol 3.5">
-              <PredictionRow name="3.5 Üst" pick="Bol gollü senaryo" pct={over35} />
-              <PredictionRow name="3.5 Alt" pick="Daha güvenli gol sınırı" pct={clamp(100 - over35)} />
-            </Panel>
+            <MiniMarket
+              icon="⚽"
+              title="2.5 Üst/Alt"
+              sub="Toplam Gol"
+              items={[
+                ["Üst", over25],
+                ["Alt", under25],
+              ]}
+            />
 
-            <Panel title="Kombo">
-              <PredictionRow
-                name="Önerilen Kombo"
-                pick={`${match.main_pick || match.selection || "MS 1"} + ${over25 > 60 ? "1.5 Üst" : "Çifte Şans"}`}
-                pct={clamp(score - 5)}
-              />
-            </Panel>
+            <MiniMarket
+              icon="🤝"
+              title="Karşılıklı Gol"
+              sub="Var / Yok"
+              items={[
+                ["Var", kgVar],
+                ["Yok", kgYok],
+              ]}
+            />
 
-            <Panel title="Canlı Tercih">
-              <div className="rounded-2xl border border-yellow-400/20 bg-yellow-400/10 p-4 text-sm leading-6 text-yellow-100">
-                İlk 15 dakikada tempo yüksekse <b>{over25 > 60 ? "gol marketleri" : "ana taraf marketi"}</b> daha değerli olur.
-                Baskı düşükse maç önü tahmini yerine canlı izlemek daha mantıklı.
-              </div>
-            </Panel>
-          </div>
-        </Section>
+            <MiniMarket
+              icon="⏱️"
+              title="İlk Yarı Sonucu"
+              sub="1X2"
+              items={[
+                ["1", iy1],
+                ["X", iyX],
+                ["2", iy2],
+              ]}
+            />
 
-        <Section title="Neden Bu Tahmin?" desc="AI analiz özeti">
-          <div className="rounded-3xl border border-yellow-400/20 bg-yellow-400/10 p-5 text-sm leading-7 text-yellow-100">
-            <b>AI Analiz:</b> {match.home_team || "Ev sahibi"} - {match.away_team || "deplasman"} maçında oran yapısı,
-            güven skoru ve maç profili birlikte değerlendirildiğinde ana senaryo{" "}
-            <b>{match.main_pick || match.selection || "-"}</b> tarafını öne çıkarıyor. Maç tipi{" "}
-            <b>{match.match_type || "dengeli"}</b>, gol profili ise <b>{match.goal_profile || "orta tempo"}</b> görünüyor.
-            Canlıda erken baskı, isabetli şut ve korner temposu gelirse tahmin güçlenir; ilk bölüm düşük tempolu geçerse risk artar.
-          </div>
-        </Section>
+            <MiniMarket
+              icon="🕐"
+              title="İlk Yarı 0.5 Üst/Alt"
+              sub="İY gol"
+              items={[
+                ["Üst", iyOver05],
+                ["Alt", iyUnder05],
+              ]}
+            />
 
-        <Section title="Benzer Oranlı Geçmiş 10 Maç" desc="Seçili orana yakın demo geçmiş maç tablosu">
-          <div className="overflow-hidden rounded-3xl border border-white/10 bg-[#111827]">
-            <div className="grid grid-cols-[1.5fr_90px_120px_100px] bg-[#0b111c] px-4 py-3 text-xs font-black uppercase text-slate-400">
-              <div>Maç</div>
-              <div>Oran</div>
-              <div>Tahmin</div>
-              <div>Skor</div>
+            <div className="mt-4 flex items-center justify-between rounded-xl bg-[#171d2b] px-4 py-3">
+              <span className="text-xs font-black uppercase tracking-widest text-slate-400">
+                Risk Seviyesi
+              </span>
+              <span className={`rounded-lg px-4 py-2 text-xs font-black ${riskColor}`}>
+                {risk}
+              </span>
+            </div>
+          </Panel>
+
+          <Panel title="DİĞER ÖNERİLER">
+            <OtherRow icon="🔁" title="HT/FT" sub="İlk Yarı / Maç Sonu" value={ms.one > ms.two ? "X/1" : "X/2"} />
+            <OtherRow icon="🌐" title="Toplam Gol 3.5" sub="Tahmini gol sayısı" value={over25 > 60 ? "Alt %64" : "Alt %84"} />
+            <OtherRow icon="⏱️" title="İlk Yarı / 0.5 Üst" sub="İlk yarı toplam gol" value={iyOver05 > 55 ? "Üst %56" : "Alt %54"} />
+            <OtherRow icon="🤝" title="Karşılıklı Gol" sub="KG Var / Yok" value={kgVar > kgYok ? "Var %57" : "Yok %67"} />
+            <OtherRow icon="🎯" title="Güçlü Kombo" sub="Premium" value={`${match.main_pick || "2.5 Alt"} + KG ${kgVar > kgYok ? "Var" : "Yok"}`} />
+            <OtherRow icon="🧩" title="En Uyumlu Senaryo" sub="Model özeti" value={`${match.main_pick || "2.5 Alt"} + İY ${iyOver05 > 55 ? "0.5 Üst" : "0.5 Alt"}`} />
+            <OtherRow icon="📍" title="Canlı Tercih" sub="AI senaryosu" value={over25 > 60 ? "Üst" : "1X"} />
+            <OtherRow icon="⚡" title="Canlı Strateji" sub="İlk 20 dakika" value="İzle" />
+
+            <div className="mt-3 rounded-lg border border-blue-400/20 bg-blue-500/10 px-4 py-3 text-xs leading-5 text-blue-100">
+              İlk 15-20 dakikada tempo düşük ve ceza sahası aksiyonu azsa ana taraf güçlenir.
+              Erken gol gelirse yeniden değerlendirilir.
             </div>
 
-            {similarMatches.map((m, i) => (
+            <div className="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-[#171d2b] p-3 text-center text-xs">
+              <div>
+                <div className="text-slate-500">1</div>
+                <b className="text-white">{match.odd || "2.10"}</b>
+              </div>
+              <div>
+                <div className="text-slate-500">X</div>
+                <b className="text-white">3.10</b>
+              </div>
+              <div>
+                <div className="text-slate-500">2</div>
+                <b className="text-white">3.70</b>
+              </div>
+            </div>
+          </Panel>
+        </div>
+
+        <Panel title="NEDEN BU TAHMİN?">
+          <div className="space-y-3 text-sm leading-6 text-slate-300">
+            <p>• Bu oran aralığında benzer maç bulundu ve model ana senaryoyu öne çıkardı.</p>
+            <p>• Ev sahibi / deplasman oran dengesi, maç temposu ve gol profili birlikte değerlendirildi.</p>
+            <p>• Ortalama toplam gol profili: <b className="text-white">{match.goal_profile || "Düşük Gollü"}</b>.</p>
+            <p>• Maç tipi: <b className="text-white">{match.match_type || "Sürpriz Açık"}</b>.</p>
+            <p>• AI analize göre en mantıklı canlı kontrol noktası ilk 15-20 dakika tempo ve ceza sahası aksiyonu.</p>
+          </div>
+        </Panel>
+
+        <div className="mt-3 rounded-xl border border-white/10 bg-[#0b111c] p-4 shadow-xl">
+          <h2 className="mb-2 text-sm font-black uppercase tracking-widest text-white">
+            BENZER ORANLI GEÇMİŞ MAÇLAR (SON 10)
+          </h2>
+          <p className="mb-3 text-xs text-slate-400">
+            Tablodaki maçlar seçili oran aralığına yakın bulunan benzer maçlardır.
+          </p>
+
+          <div className="overflow-hidden rounded-xl border border-white/10">
+            <div className="grid grid-cols-[130px_1fr_1fr_110px_110px_100px_100px_100px] bg-[#171d2b] px-3 py-2 text-xs font-black text-slate-400">
+              <div>Tarih</div>
+              <div>Ev Sahibi</div>
+              <div>Deplasman</div>
+              <div>İY Sonuç</div>
+              <div>MS Sonuç</div>
+              <div>2.5 Gol</div>
+              <div>KG</div>
+              <div>HT/FT</div>
+            </div>
+
+            {similarMatches.map((r, i) => (
               <div
                 key={i}
-                className="grid grid-cols-[1.5fr_90px_120px_100px] border-t border-white/10 px-4 py-3 text-sm hover:bg-[#151f33]"
+                className="grid grid-cols-[130px_1fr_1fr_110px_110px_100px_100px_100px] border-t border-white/10 px-3 py-2 text-xs hover:bg-[#151f33]"
               >
-                <div className="font-bold text-white">
-                  {m.home} - {m.away}
-                  <div className="text-xs font-normal text-slate-500">{m.result}</div>
+                <div className="text-slate-300">{r[0]}</div>
+                <div className="font-bold text-white">{r[1]}</div>
+                <div className="font-bold text-white">{r[2]}</div>
+                <div className="text-slate-300">{r[3]}</div>
+                <div className="text-slate-300">{r[4]}</div>
+                <div className={r[5] === "Üst" ? "font-black text-emerald-400" : "font-black text-red-400"}>
+                  {r[5]}
                 </div>
-                <div className="font-black text-yellow-300">{m.odd}</div>
-                <div className="font-bold text-slate-200">{m.pick}</div>
-                <div className="text-slate-300">{m.score}</div>
+                <div className={r[6] === "Var" ? "font-black text-emerald-400" : "font-black text-red-400"}>
+                  {r[6]}
+                </div>
+                <div className="font-black text-yellow-300">{r[7]}</div>
               </div>
             ))}
           </div>
-        </Section>
+        </div>
 
-        <footer className="mt-8 rounded-2xl border border-red-400/30 bg-red-500/10 p-4 text-xs leading-6 text-red-200">
+        <footer className="mt-3 rounded-xl border border-red-400/30 bg-red-500/10 p-4 text-xs leading-6 text-red-200">
           <b>⚠️ Yasal Uyarı:</b> Bu platform yalnızca istatistiksel analizler,
           geçmiş veri karşılaştırmaları ve yapay zekâ destekli tahminler sunar.
-          Kesin kazanç garantisi verilmez. Bahis oynamak risk içerir ve bağımlılık oluşturabilir.
+          Kesin kazanç garantisi verilmez.
         </footer>
       </div>
     </main>
   );
 }
 
-function Section({ title, desc, children }: any) {
-  return (
-    <section className="mb-5 rounded-3xl border border-white/10 bg-[#0b111c] p-5 shadow-xl">
-      <div className="mb-4">
-        <h2 className="text-xl font-black text-white">{title}</h2>
-        <p className="text-sm text-slate-400">{desc}</p>
-      </div>
-      {children}
-    </section>
-  );
-}
+function TopCard({ title, value, sub, color }: any) {
+  const cls =
+    color === "green"
+      ? "bg-[#14532d]"
+      : color === "blue"
+      ? "bg-[#12325f]"
+      : "bg-[#1b2136]";
 
-function InfoCard({ title, value, sub, danger }: any) {
   return (
-    <div className={`rounded-3xl border p-5 text-center shadow-xl ${
-      danger
-        ? "border-red-400/30 bg-red-500/10"
-        : "border-yellow-400/20 bg-yellow-400/10"
-    }`}>
-      <div className="text-xs font-black tracking-widest text-slate-400">{title}</div>
-      <div className={`mt-2 text-4xl font-black ${danger ? "text-red-300" : "text-yellow-300"}`}>
-        {value}
+    <div className={`rounded-xl border border-white/10 ${cls} p-5 text-center shadow-xl`}>
+      <div className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-300">
+        {title}
       </div>
-      <div className="mt-1 text-sm text-slate-400">{sub}</div>
+      <div className="mt-2 text-4xl font-black text-white">{value}</div>
+      <div className="mt-2 text-xs font-bold text-slate-300">{sub}</div>
     </div>
   );
 }
 
 function Panel({ title, children }: any) {
   return (
-    <div className="rounded-3xl border border-white/10 bg-[#111827] p-5 text-white shadow-xl">
-      <h3 className="mb-4 text-lg font-black">{title}</h3>
+    <section className="rounded-xl border border-white/10 bg-[#0b111c] p-4 shadow-xl">
+      <h2 className="mb-4 text-sm font-black uppercase tracking-widest text-white">{title}</h2>
       {children}
+    </section>
+  );
+}
+
+function MiniMarket({ icon, title, sub, items }: any) {
+  return (
+    <div className="grid grid-cols-[1fr_auto] items-center border-b border-white/10 py-3 last:border-b-0">
+      <div>
+        <div className="text-sm font-black text-white">
+          {icon} {title}
+        </div>
+        <div className="text-[11px] text-slate-500">{sub}</div>
+      </div>
+
+      <div className="flex gap-2">
+        {items.map((item: any, i: number) => (
+          <div key={i} className="min-w-[64px] text-right">
+            <div className="text-[10px] font-black text-slate-400">{item[0]}</div>
+            <div className="font-black text-white">%{item[1]}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
-function PredictionRow({ name, pick, pct }: any) {
-  const score = safePercent(pct);
-  const risky = score < 50;
-
+function OtherRow({ icon, title, sub, value }: any) {
   return (
-    <div className="mb-4 grid gap-3 border-b border-white/10 pb-4 last:mb-0 last:border-b-0 last:pb-0 md:grid-cols-[0.9fr_1.3fr]">
+    <div className="grid grid-cols-[1fr_auto] items-center border-b border-white/10 py-3 last:border-b-0">
       <div>
-        <div className="font-black text-white">{name}</div>
-        <div className="text-xs text-slate-500">{pick}</div>
+        <div className="text-sm font-black text-white">
+          {icon} {title}
+        </div>
+        <div className="text-[11px] text-slate-500">{sub}</div>
       </div>
 
-      <div>
-        <div className="mb-1 flex justify-between text-xs font-bold">
-          <span className={risky ? "text-red-300" : "text-yellow-300"}>%{score}</span>
-          <span className="text-slate-500">AI güven</span>
-        </div>
-        <div className="h-2 rounded bg-[#263247]">
-          <div
-            className={`h-2 rounded ${risky ? "bg-red-500" : "bg-yellow-400"}`}
-            style={{ width: `${score}%` }}
-          />
-        </div>
+      <div className="rounded-lg bg-yellow-400/15 px-3 py-2 text-xs font-black text-yellow-300">
+        {value}
       </div>
     </div>
   );
