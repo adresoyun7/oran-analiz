@@ -267,11 +267,9 @@ export default function HomePage() {
   const filteredMatches = useMemo(() => {
     return matches.filter((m) => {
       const s = safePercent(m.pro_score);
-
       if (confidenceFilter === "high") return s >= 70;
       if (confidenceFilter === "mid") return s >= 55 && s < 70;
       if (confidenceFilter === "risk") return s < 55;
-
       return true;
     });
   }, [matches, confidenceFilter]);
@@ -294,194 +292,269 @@ export default function HomePage() {
   const seasonSummary = `${selectedSeasons.length} sezon`;
 
   return (
-    <main className="min-h-screen bg-[#f4f7fb] p-3 text-slate-100">
-      <div className="mx-auto max-w-[1800px]">
-        <header className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[#0b111c] px-4 py-3 shadow-xl">
-          <div>
-            <div className="text-xs font-black uppercase tracking-[0.25em] text-yellow-400">
-              ORAN ANALİZ
-            </div>
-            <h1 className="text-2xl font-black text-white">Ana Maç Ekranı</h1>
-            <p className="text-xs text-slate-400">{todayText()}</p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => setFilterOpen(true)}
-              className="rounded-lg border border-white/10 bg-[#121a2a] px-4 py-2 text-xs font-black text-white hover:border-yellow-400/50"
-            >
-              ⚙️ Filtreler
-            </button>
-
-            <button
-              onClick={loadScanner}
-              className="rounded-lg bg-yellow-400 px-5 py-2 text-xs font-black text-black hover:bg-yellow-300"
-            >
-              {loading ? "Analiz Ediliyor..." : "🚀 Analizi Başlat"}
-            </button>
-          </div>
-        </header>
-
-        {error && (
-          <div className="mb-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-            {error}
-          </div>
-        )}
-
-        <div className="mb-3 grid gap-3 lg:grid-cols-3">
-          <TopCard title="TOPLAM MAÇ" value={scanner?.total_matches || 0} sub="Analiz edilen maç" color="green" />
-          <TopCard title="KUPONDA" value={coupon.length} sub="Seçili maç" color="blue" />
-          <TopCard title="ORTALAMA GÜVEN" value={`%${averageScore}`} sub="AI güven ortalaması" color="dark" />
-        </div>
-
-        <section className="mb-3 rounded-xl border border-white/10 bg-[#0b111c] p-4 shadow-xl">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-sm font-black uppercase tracking-widest text-white">
-                Kontrol Paneli
-              </h2>
-              <p className="text-xs text-slate-400">
-                {dateOption} • {leagueSummary} • {seasonSummary} • Oran hassasiyeti 8%
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <FilterButton active={confidenceFilter === "all"} onClick={() => setConfidenceFilter("all")}>
-                Tümü
-              </FilterButton>
-              <FilterButton active={confidenceFilter === "high"} onClick={() => setConfidenceFilter("high")}>
-                🔥 Yüksek Güven
-              </FilterButton>
-              <FilterButton active={confidenceFilter === "mid"} onClick={() => setConfidenceFilter("mid")}>
-                🟡 Orta Güven
-              </FilterButton>
-              <FilterButton active={confidenceFilter === "risk"} onClick={() => setConfidenceFilter("risk")}>
-                🔴 Riskli
-              </FilterButton>
-            </div>
-          </div>
-
-          <div className="grid gap-2 md:grid-cols-[1fr_1fr_1fr_auto]">
-            <MiniInfo label="Tarih" value={dateOption} />
-            <MiniInfo label="Lig" value={leagueSummary} />
-            <MiniInfo label="Sezon" value={seasonSummary} />
-            <button
-              onClick={() => setFilterOpen(true)}
-              className="rounded-lg bg-yellow-400 px-4 py-3 text-xs font-black text-black hover:bg-yellow-300"
-            >
-              Düzenle
-            </button>
-          </div>
-        </section>
-
-        <section className="rounded-xl border border-white/10 bg-[#0b111c] p-4 shadow-xl">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-sm font-black uppercase tracking-widest text-white">
-                Maç Listesi
-              </h2>
-              <p className="text-xs text-slate-400">
-                Kompakt analiz görünümü • {filteredMatches.length} maç gösteriliyor
-              </p>
-            </div>
-
-            <div className="rounded-lg bg-yellow-400/15 px-3 py-2 text-xs font-black text-yellow-300">
-              Tahmin değil, analiz.
-            </div>
-          </div>
-
-          {matches.length === 0 && (
-            <div className="rounded-xl border border-dashed border-yellow-400/30 bg-[#111827] p-10 text-center">
-              <div className="text-5xl">⚽</div>
-              <div className="mt-3 text-xl font-black text-white">Analiz bekleniyor</div>
-              <div className="mt-1 text-sm text-slate-400">
-                Başlamak için “Analizi Başlat” butonuna bas.
+    <main className="min-h-screen bg-[#f4f7fb] text-slate-100">
+      <div className="grid min-h-screen grid-cols-[260px_1fr]">
+        <aside className="sticky top-0 flex h-screen flex-col justify-between border-r border-white/10 bg-[#0b111c] text-white shadow-xl">
+          <div className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-yellow-400 text-xl font-black text-black shadow-[0_0_25px_rgba(250,204,21,0.25)]">
+                O
+              </div>
+              <div>
+                <div className="text-sm font-black tracking-[0.22em] text-yellow-400">
+                  ORAN ANALİZ
+                </div>
+                <div className="text-xs font-bold text-slate-400">
+                  AI Match Engine
+                </div>
               </div>
             </div>
-          )}
 
-          <div className="grid gap-2">
-            {filteredMatches.map((m, i) => {
-              const score = safePercent(m.pro_score);
-              const risky = score < 55;
-              const realIndex = matches.findIndex(
-                (x) => x.home_team === m.home_team && x.away_team === m.away_team
-              );
+            <div className="mt-8 space-y-2">
+              <SidebarItem icon="🏠" label="Ana Sayfa" active />
+              <SidebarItem icon="⭐" label="Favoriler" />
+              <SidebarItem icon="🎫" label="Kuponlarım" />
+              <SidebarItem icon="📊" label="Analiz Geçmişi" />
+            </div>
 
-              return (
-                <div
-                  key={`${m.home_team}-${m.away_team}-${i}`}
-                  className="grid grid-cols-[75px_1.5fr_130px_95px_90px_120px_145px] items-center gap-3 rounded-xl border border-white/10 bg-[#111827] px-4 py-3 text-sm shadow hover:bg-[#151f33]"
+            <div className="mt-6 rounded-xl border border-yellow-400/20 bg-yellow-400/10 p-3">
+              <div className="text-xs font-black text-yellow-300">Bugünkü Özet</div>
+              <div className="mt-2 text-xs leading-5 text-slate-300">
+                {scanner?.total_matches || 0} maç analiz edildi.
+                <br />
+                Ortalama güven: %{averageScore}
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-white/10 p-4">
+            {userEmail ? (
+              <div className="mb-3 rounded-xl border border-yellow-400/20 bg-yellow-400/10 p-3 text-xs text-yellow-200">
+                Aktif kullanıcı:
+                <br />
+                <b>{userEmail}</b>
+              </div>
+            ) : (
+              <div className="mb-3 text-xs leading-5 text-slate-400">
+                Giriş yaparak kuponlarını ve analiz geçmişini kaydedebilirsin.
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setAuthMode("login")}
+                className="rounded-lg border border-white/10 bg-[#111827] py-2 text-sm font-bold hover:bg-[#172238]"
+              >
+                Giriş Yap
+              </button>
+
+              <button
+                onClick={() => setAuthMode("register")}
+                className="rounded-lg bg-yellow-400 py-2 text-sm font-black text-black hover:bg-yellow-300"
+              >
+                Üye Ol
+              </button>
+            </div>
+
+            <button
+              onClick={() => setTermsOpen(true)}
+              className="mt-3 w-full text-left text-xs font-bold text-yellow-300 underline"
+            >
+              Kullanım şartları
+            </button>
+          </div>
+        </aside>
+
+        <section className="min-w-0 p-4">
+          <div className="w-full">
+            <header className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[#0b111c] px-4 py-3 shadow-xl">
+              <div>
+                <div className="text-xs font-black uppercase tracking-[0.25em] text-yellow-400">
+                  ORAN ANALİZ
+                </div>
+                <h1 className="text-2xl font-black text-white">Ana Maç Ekranı</h1>
+                <p className="text-xs text-slate-400">{todayText()}</p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => setFilterOpen(true)}
+                  className="rounded-lg border border-white/10 bg-[#121a2a] px-4 py-2 text-xs font-black text-white hover:border-yellow-400/50"
                 >
-                  <div className="text-center">
-                    <div className="font-black text-white">{m.time || "20:00"}</div>
-                    <div className="text-[10px] text-slate-500">Saat</div>
-                  </div>
+                  ⚙️ Filtreler
+                </button>
 
-                  <div>
-                    <div className="font-black text-white">
-                      {m.home_team || "-"} - {m.away_team || "-"}
-                    </div>
-                    <div className="text-[11px] text-slate-400">
-                      {m.league || "Lig"} • {m.match_type || "Maç tipi"} • {m.goal_profile || "Gol profili"}
-                    </div>
-                  </div>
+                <button
+                  onClick={loadScanner}
+                  className="rounded-lg bg-yellow-400 px-5 py-2 text-xs font-black text-black hover:bg-yellow-300"
+                >
+                  {loading ? "Analiz Ediliyor..." : "🚀 Analizi Başlat"}
+                </button>
+              </div>
+            </header>
 
-                  <div className="text-center">
-                    <div className="rounded-lg bg-yellow-400 px-3 py-2 text-xs font-black text-black">
-                      {m.main_pick || m.selection || "-"}
-                    </div>
-                  </div>
+            {error && (
+              <div className="mb-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
 
-                  <div className="text-center">
-                    <div className={risky ? "text-lg font-black text-red-400" : "text-lg font-black text-yellow-300"}>
-                      %{score}
-                    </div>
-                    <div className="mx-auto mt-1 h-1.5 w-16 rounded bg-[#263247]">
-                      <div
-                        className={risky ? "h-1.5 rounded bg-red-500" : "h-1.5 rounded bg-yellow-400"}
-                        style={{ width: `${score}%` }}
-                      />
-                    </div>
-                  </div>
+            <div className="mb-3 grid gap-3 lg:grid-cols-3">
+              <TopCard title="TOPLAM MAÇ" value={scanner?.total_matches || 0} sub="Analiz edilen maç" color="green" />
+              <TopCard title="KUPONDA" value={coupon.length} sub="Seçili maç" color="blue" />
+              <TopCard title="ORTALAMA GÜVEN" value={`%${averageScore}`} sub="AI güven ortalaması" color="dark" />
+            </div>
 
-                  <div className="text-center">
-                    <div className="font-black text-white">{m.odd || "-"}</div>
-                    <div className="text-[10px] text-slate-500">Oran</div>
-                  </div>
+            <section className="mb-3 rounded-xl border border-white/10 bg-[#0b111c] p-4 shadow-xl">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-black uppercase tracking-widest text-white">
+                    Kontrol Paneli
+                  </h2>
+                  <p className="text-xs text-slate-400">
+                    {dateOption} • {leagueSummary} • {seasonSummary} • Oran hassasiyeti 8%
+                  </p>
+                </div>
 
-                  <div className="text-center">
-                    <div className="font-black text-white">{m.expected_score || "1 - 0"}</div>
-                    <div className="text-[10px] text-slate-500">Tahmini skor</div>
-                  </div>
+                <div className="flex flex-wrap gap-2">
+                  <FilterButton active={confidenceFilter === "all"} onClick={() => setConfidenceFilter("all")}>
+                    Tümü
+                  </FilterButton>
+                  <FilterButton active={confidenceFilter === "high"} onClick={() => setConfidenceFilter("high")}>
+                    🔥 Yüksek Güven
+                  </FilterButton>
+                  <FilterButton active={confidenceFilter === "mid"} onClick={() => setConfidenceFilter("mid")}>
+                    🟡 Orta Güven
+                  </FilterButton>
+                  <FilterButton active={confidenceFilter === "risk"} onClick={() => setConfidenceFilter("risk")}>
+                    🔴 Riskli
+                  </FilterButton>
+                </div>
+              </div>
 
-                  <div className="flex justify-end gap-2">
-                    <Link
-                      href={`/match/${realIndex >= 0 ? realIndex : i}`}
-                      onClick={() => openDetail(m, realIndex >= 0 ? realIndex : i)}
-                      className="rounded-lg border border-white/10 px-3 py-2 text-xs font-black text-white hover:border-yellow-400/50"
-                    >
-                      Detay
-                    </Link>
+              <div className="grid gap-2 md:grid-cols-[1fr_1fr_1fr_auto]">
+                <MiniInfo label="Tarih" value={dateOption} />
+                <MiniInfo label="Lig" value={leagueSummary} />
+                <MiniInfo label="Sezon" value={seasonSummary} />
+                <button
+                  onClick={() => setFilterOpen(true)}
+                  className="rounded-lg bg-yellow-400 px-4 py-3 text-xs font-black text-black hover:bg-yellow-300"
+                >
+                  Düzenle
+                </button>
+              </div>
+            </section>
 
-                    <button
-                      onClick={() => addCoupon(m)}
-                      className="rounded-lg bg-yellow-400 px-3 py-2 text-xs font-black text-black hover:bg-yellow-300"
-                    >
-                      + Kupon
-                    </button>
+            <section className="rounded-xl border border-white/10 bg-[#0b111c] p-4 shadow-xl">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-black uppercase tracking-widest text-white">
+                    Maç Listesi
+                  </h2>
+                  <p className="text-xs text-slate-400">
+                    Kompakt analiz görünümü • {filteredMatches.length} maç gösteriliyor
+                  </p>
+                </div>
+
+                <div className="rounded-lg bg-yellow-400/15 px-3 py-2 text-xs font-black text-yellow-300">
+                  Tahmin değil, analiz.
+                </div>
+              </div>
+
+              {matches.length === 0 && (
+                <div className="rounded-xl border border-dashed border-yellow-400/30 bg-[#111827] p-10 text-center">
+                  <div className="text-5xl">⚽</div>
+                  <div className="mt-3 text-xl font-black text-white">Analiz bekleniyor</div>
+                  <div className="mt-1 text-sm text-slate-400">
+                    Başlamak için “Analizi Başlat” butonuna bas.
                   </div>
                 </div>
-              );
-            })}
+              )}
+
+              <div className="grid gap-2">
+                {filteredMatches.map((m, i) => {
+                  const score = safePercent(m.pro_score);
+                  const risky = score < 55;
+                  const realIndex = matches.findIndex(
+                    (x) => x.home_team === m.home_team && x.away_team === m.away_team
+                  );
+
+                  return (
+                    <div
+                      key={`${m.home_team}-${m.away_team}-${i}`}
+                      className="grid grid-cols-[80px_2fr_150px_110px_100px_130px_150px] items-center gap-3 rounded-xl border border-white/10 bg-[#111827] px-4 py-3 text-sm shadow hover:bg-[#151f33]"
+                    >
+                      <div className="text-center">
+                        <div className="font-black text-white">{m.time || "20:00"}</div>
+                        <div className="text-[10px] text-slate-500">Saat</div>
+                      </div>
+
+                      <div>
+                        <div className="font-black text-white">
+                          {m.home_team || "-"} - {m.away_team || "-"}
+                        </div>
+                        <div className="text-[11px] text-slate-400">
+                          {m.league || "Lig"} • {m.match_type || "Maç tipi"} • {m.goal_profile || "Gol profili"}
+                        </div>
+                      </div>
+
+                      <div className="text-center">
+                        <div className="rounded-lg bg-yellow-400 px-3 py-2 text-xs font-black text-black">
+                          {m.main_pick || m.selection || "-"}
+                        </div>
+                      </div>
+
+                      <div className="text-center">
+                        <div className={risky ? "text-lg font-black text-red-400" : "text-lg font-black text-yellow-300"}>
+                          %{score}
+                        </div>
+                        <div className="mx-auto mt-1 h-1.5 w-16 rounded bg-[#263247]">
+                          <div
+                            className={risky ? "h-1.5 rounded bg-red-500" : "h-1.5 rounded bg-yellow-400"}
+                            style={{ width: `${score}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="text-center">
+                        <div className="font-black text-white">{m.odd || "-"}</div>
+                        <div className="text-[10px] text-slate-500">Oran</div>
+                      </div>
+
+                      <div className="text-center">
+                        <div className="font-black text-white">{m.expected_score || "1 - 0"}</div>
+                        <div className="text-[10px] text-slate-500">Tahmini skor</div>
+                      </div>
+
+                      <div className="flex justify-end gap-2">
+                        <Link
+                          href={`/match/${realIndex >= 0 ? realIndex : i}`}
+                          onClick={() => openDetail(m, realIndex >= 0 ? realIndex : i)}
+                          className="rounded-lg border border-white/10 px-3 py-2 text-xs font-black text-white hover:border-yellow-400/50"
+                        >
+                          Detay
+                        </Link>
+
+                        <button
+                          onClick={() => addCoupon(m)}
+                          className="rounded-lg bg-yellow-400 px-3 py-2 text-xs font-black text-black hover:bg-yellow-300"
+                        >
+                          + Kupon
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+
+            <footer className="mt-3 rounded-xl border border-red-400/30 bg-red-500/10 p-4 text-xs leading-6 text-red-700">
+              <b>⚠️ Yasal Uyarı:</b> Bu platform yalnızca istatistiksel analizler,
+              geçmiş veri karşılaştırmaları ve yapay zekâ destekli tahminler sunar.
+              Kesin kazanç garantisi verilmez. Bahis oynamak risk içerir.
+            </footer>
           </div>
         </section>
-
-        <footer className="mt-3 rounded-xl border border-red-400/30 bg-red-500/10 p-4 text-xs leading-6 text-red-700">
-          <b>⚠️ Yasal Uyarı:</b> Bu platform yalnızca istatistiksel analizler,
-          geçmiş veri karşılaştırmaları ve yapay zekâ destekli tahminler sunar.
-          Kesin kazanç garantisi verilmez. Bahis oynamak risk içerir.
-        </footer>
       </div>
 
       {coupon.length > 0 && (
@@ -635,8 +708,34 @@ export default function HomePage() {
         </div>
       )}
 
+      {authMode === "login" && !userEmail && (
+        <AuthModal
+          title="Giriş Yap"
+          button="Giriş Yap"
+          onClose={() => setAuthMode("login")}
+          onSubmit={() => setUserEmail("demo@orananaliz.ai")}
+          showTerms={false}
+          acceptedTerms={acceptedTerms}
+          setAcceptedTerms={setAcceptedTerms}
+          setTermsOpen={setTermsOpen}
+        />
+      )}
+
+      {authMode === "register" && !userEmail && (
+        <AuthModal
+          title="Üye Ol"
+          button="Üyeliği Oluştur"
+          onClose={() => setAuthMode("login")}
+          onSubmit={register}
+          showTerms
+          acceptedTerms={acceptedTerms}
+          setAcceptedTerms={setAcceptedTerms}
+          setTermsOpen={setTermsOpen}
+        />
+      )}
+
       {termsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 p-4">
           <div className="max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-yellow-400/20 bg-[#0b111c] p-6 text-white shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-black">Kullanım Şartları ve Yasal Uyarılar</h2>
@@ -654,6 +753,21 @@ export default function HomePage() {
         </div>
       )}
     </main>
+  );
+}
+
+function SidebarItem({ icon, label, active }: any) {
+  return (
+    <div
+      className={`flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold ${
+        active
+          ? "bg-yellow-400 text-black"
+          : "text-slate-300 hover:bg-[#172238] hover:text-white"
+      }`}
+    >
+      <span>{icon}</span>
+      <span>{label}</span>
+    </div>
   );
 }
 
@@ -699,5 +813,73 @@ function FilterButton({ active, onClick, children }: any) {
     >
       {children}
     </button>
+  );
+}
+
+function AuthModal({
+  title,
+  button,
+  onClose,
+  onSubmit,
+  showTerms,
+  acceptedTerms,
+  setAcceptedTerms,
+  setTermsOpen,
+}: any) {
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4">
+      <div className="w-full max-w-md rounded-2xl border border-yellow-400/20 bg-[#0b111c] p-6 text-white shadow-2xl">
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="text-xl font-black">{title}</h2>
+          <button
+            onClick={onClose}
+            className="rounded-lg border border-white/10 px-3 py-2 text-xs font-black text-slate-300 hover:bg-[#172238]"
+          >
+            Kapat
+          </button>
+        </div>
+
+        <input
+          placeholder="Email"
+          className="mb-3 w-full rounded-lg border border-white/10 bg-[#111827] px-4 py-3 text-sm text-white outline-none focus:border-yellow-400/60"
+        />
+
+        <input
+          placeholder="Şifre"
+          type="password"
+          className="mb-3 w-full rounded-lg border border-white/10 bg-[#111827] px-4 py-3 text-sm text-white outline-none focus:border-yellow-400/60"
+        />
+
+        {showTerms && (
+          <>
+            <label className="mb-3 flex gap-2 text-xs leading-5 text-slate-300">
+              <input
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                className="mt-1 accent-yellow-400"
+              />
+              <span>
+                Kullanım şartlarını, sorumluluk reddini ve risk uyarısını kabul ediyorum.
+              </span>
+            </label>
+
+            <button
+              onClick={() => setTermsOpen(true)}
+              className="mb-3 text-left text-xs font-bold text-yellow-300 underline"
+            >
+              Kullanım şartlarını oku
+            </button>
+          </>
+        )}
+
+        <button
+          onClick={onSubmit}
+          className="w-full rounded-lg bg-yellow-400 px-4 py-3 text-sm font-black text-black hover:bg-yellow-300"
+        >
+          {button}
+        </button>
+      </div>
+    </div>
   );
 }
