@@ -158,9 +158,9 @@ export default function HomePage() {
       };
 
       const cleanLeagues =
-        selectedLeagues.length === 0 || selectedLeagues.includes("🏆 Tüm Ligler")
-          ? Object.keys(LEAGUE_MAP)
-          : selectedLeagues.map((x) => cleanLeagueName(x));
+  selectedLeagues.includes("🏆 Tüm Ligler") || selectedLeagues.length === 0
+    ? Object.keys(LEAGUE_MAP)
+    : selectedLeagues.map((x) => cleanLeagueName(x));
 
       const params = new URLSearchParams({
         date: dateMap[dateOption] || "today",
@@ -214,21 +214,38 @@ export default function HomePage() {
   }
 
   function toggleLeague(league: string) {
-    setSelectedLeagues((prev) => {
-      if (league === "🏆 Tüm Ligler") {
-        if (prev.includes("🏆 Tüm Ligler")) return [];
-        return ["🏆 Tüm Ligler"];
+  setSelectedLeagues((prev) => {
+    const allRealLeagues = LEAGUES.filter((x) => x !== "🏆 Tüm Ligler");
+
+    if (league === "🏆 Tüm Ligler") {
+      const allSelected = allRealLeagues.every((x) => prev.includes(x));
+
+      if (allSelected) {
+        return [];
       }
 
-      const clean = prev.filter((x) => x !== "🏆 Tüm Ligler");
+      return ["🏆 Tüm Ligler", ...allRealLeagues];
+    }
 
-      if (clean.includes(league)) {
-        return clean.filter((x) => x !== league);
-      }
+    const withoutAll = prev.filter((x) => x !== "🏆 Tüm Ligler");
 
-      return [...clean, league];
-    });
-  }
+    let next: string[];
+
+    if (withoutAll.includes(league)) {
+      next = withoutAll.filter((x) => x !== league);
+    } else {
+      next = [...withoutAll, league];
+    }
+
+    const allSelectedNow = allRealLeagues.every((x) => next.includes(x));
+
+    if (allSelectedNow) {
+      return ["🏆 Tüm Ligler", ...allRealLeagues];
+    }
+
+    return next;
+  });
+}
 
   function toggleSeason(season: string) {
     setSelectedSeasons((prev) => {
@@ -737,11 +754,14 @@ export default function HomePage() {
                       className="mb-2 flex cursor-pointer items-center gap-3 rounded-lg bg-[#0b111c] px-4 py-3 text-sm hover:bg-[#172238]"
                     >
                       <input
-                        type="checkbox"
-                        checked={selectedLeagues.includes(league)}
-                        onChange={() => toggleLeague(league)}
-                        className="accent-yellow-400"
-                      />
+  type="checkbox"
+  checked={
+    selectedLeagues.includes("🏆 Tüm Ligler") ||
+    selectedLeagues.includes(league)
+  }
+  onChange={() => toggleLeague(league)}
+  className="accent-yellow-400"
+/>
                       <span>{league}</span>
                     </label>
                   ))}
