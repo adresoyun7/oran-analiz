@@ -82,9 +82,29 @@ function formatTolerance(v: number) {
   return (v / 100).toFixed(2);
 }
 
+function cleanLeagueName(value: string) {
+  return value
+    .replace(/^(\p{Emoji_Presentation}|\p{Extended_Pictographic}|\S)\s/u, "")
+    .trim();
+}
+
+function getSampleCount(m: Match) {
+  return Number(
+    m.sample_count ??
+      m.ornek ??
+      m.examples ??
+      m.similar_count ??
+      m.benzer_mac_sayisi ??
+      m.match_count ??
+      m.history_count ??
+      m.total_examples ??
+      0
+  );
+}
+
 function calcPlayableScore(m: Match) {
   const confidence = safePercent(m.pro_score);
-  const sample = Math.min(100, Number(m.sample_count || 0) * 4);
+  const sample = Math.min(100, getSampleCount(m) * 4);
   const toleranceBonus = Array.isArray(m.tolerance_hits) ? m.tolerance_hits.length * 4 : 0;
   const comboBonus = m.combo_pick ? 6 : 0;
 
@@ -123,50 +143,47 @@ export default function HomePage() {
   }, []);
 
   async function loadScanner() {
-  setLoading(true);
-  setError("");
+    setLoading(true);
+    setError("");
 
-  try {
-    const API_URL =
-      process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
-    const dateMap: Record<string, string> = {
-      Bugün: "today",
-      Yarın: "tomorrow",
-      "2 Gün Sonra": "2days",
-      "3 Gün Sonra": "3days",
-      "Özel Tarih": "today",
-    };
+      const dateMap: Record<string, string> = {
+        Bugün: "today",
+        Yarın: "tomorrow",
+        "2 Gün Sonra": "2days",
+        "3 Gün Sonra": "3days",
+        "Özel Tarih": "today",
+      };
 
-    const cleanLeagues = selectedLeagues.includes("🏆 Tüm Ligler")
-  ? ["Premier League", "La Liga", "Bundesliga", "Serie A", "Ligue 1"]
-  : selectedLeagues.map((x) =>
-      x.replace(/^(\p{Emoji_Presentation}|\p{Extended_Pictographic}|\S)\s/u, "").trim()
-    );
+      const cleanLeagues =
+        selectedLeagues.length === 0 || selectedLeagues.includes("🏆 Tüm Ligler")
+          ? Object.keys(LEAGUE_MAP)
+          : selectedLeagues.map((x) => cleanLeagueName(x));
 
-    const params = new URLSearchParams({
-      date: dateMap[dateOption] || "today",
-      leagues: cleanLeagues.join(","),
-      tolerans: formatTolerance(tolerance),
-    });
+      const params = new URLSearchParams({
+        date: dateMap[dateOption] || "today",
+        leagues: cleanLeagues.join(","),
+        tolerans: formatTolerance(tolerance),
+      });
 
-    const res = await fetch(`${API_URL}/scanner/daily?${params.toString()}`);
+      const res = await fetch(`${API_URL}/scanner/daily?${params.toString()}`);
+      const data = await res.json();
 
-    const data = await res.json();
+      if (data.error) {
+        setError("API hata verdi");
+        return;
+      }
 
-    if (data.error) {
-      setError("API hata verdi");
-      return;
+      setScanner(data);
+      localStorage.setItem("vibe_scanner", JSON.stringify(data));
+    } catch (err) {
+      setError("API bağlantı hatası");
+    } finally {
+      setLoading(false);
     }
-
-    setScanner(data);
-    localStorage.setItem("vibe_scanner", JSON.stringify(data));
-  } catch (err) {
-    setError("API bağlantı hatası");
-  } finally {
-    setLoading(false);
   }
-}
 
   function openDetail(m: Match, index: number) {
     localStorage.setItem("vibe_selected_match", JSON.stringify(m));
@@ -175,9 +192,7 @@ export default function HomePage() {
 
   function addCoupon(m: Match) {
     setCoupon((prev) => {
-      const exists = prev.some(
-        (x) => x.home_team === m.home_team && x.away_team === m.away_team
-      );
+      const exists = prev.some((x) => x.home_team === m.home_team && x.away_team === m.away_team);
       if (exists) return prev;
       return [...prev, m];
     });
@@ -199,17 +214,18 @@ export default function HomePage() {
   }
 
   function toggleLeague(league: string) {
-    if (league === "🏆 Tüm Ligler") {
-      setSelectedLeagues(["🏆 Tüm Ligler"]);
-      return;
-    }
-
     setSelectedLeagues((prev) => {
-      const clean = prev.filter((x) => x !== "🏆 Tüm Ligler");
-      if (clean.includes(league)) {
-        const next = clean.filter((x) => x !== league);
-        return next.length ? next : ["🏆 Tüm Ligler"];
+      if (league === "🏆 Tüm Ligler") {
+        if (prev.includes("🏆 Tüm Ligler")) return [];
+        return ["🏆 Tüm Ligler"];
       }
+
+      const clean = prev.filter((x) => x !== "🏆 Tüm Ligler");
+
+      if (clean.includes(league)) {
+        return clean.filter((x) => x !== league);
+      }
+
       return [...clean, league];
     });
   }
@@ -224,9 +240,7 @@ export default function HomePage() {
     });
   }
 
-  const filteredLeagues = LEAGUES.filter((x) =>
-    x.toLowerCase().includes(query.toLowerCase())
-  );
+  const filteredLeagues = LEAGUES.filter((x) => x.toLowerCase().includes(query.toLowerCase()));
 
   const filteredMatches = useMemo(() => {
     return matches
@@ -255,7 +269,9 @@ export default function HomePage() {
   }, [matches]);
 
   const leagueSummary =
-    selectedLeagues.includes("🏆 Tüm Ligler")
+    selectedLeagues.length === 0
+      ? "Lig seçilmedi"
+      : selectedLeagues.includes("🏆 Tüm Ligler")
       ? "Tüm Ligler"
       : `${selectedLeagues.length} lig`;
 
@@ -525,7 +541,7 @@ export default function HomePage() {
                       </div>
 
                       <div className="text-center">
-                        <div className="font-black text-white">{m.sample_count || 0}</div>
+                        <div className="font-black text-white">{getSampleCount(m)}</div>
                         <div className="text-[10px] text-slate-500">Örnek maç</div>
                         <div className="mt-1 font-black text-yellow-300">{m.odd || "-"}</div>
                       </div>
