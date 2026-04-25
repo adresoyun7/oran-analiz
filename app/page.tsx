@@ -58,7 +58,10 @@ const LEAGUE_MAP: Record<string, string> = {
   "Şili Primera": "🇨🇱",
 };
 
-const LEAGUES = ["🏆 Tüm Ligler", ...Object.entries(LEAGUE_MAP).map(([name, icon]) => `${icon} ${name}`)];
+const LEAGUES = [
+  "🏆 Tüm Ligler",
+  ...Object.entries(LEAGUE_MAP).map(([name, icon]) => `${icon} ${name}`),
+];
 
 const DATE_OPTIONS = ["Bugün", "Yarın", "2 Gün Sonra", "3 Gün Sonra", "Özel Tarih"];
 const SEASONS = ["2122", "2223", "2324", "2425", "2526"];
@@ -126,10 +129,17 @@ export default function HomePage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [dateOption, setDateOption] = useState("Bugün");
   const [selectedLeagues, setSelectedLeagues] = useState<string[]>(["🏆 Tüm Ligler"]);
-  const [selectedSeasons, setSelectedSeasons] = useState<string[]>(["2122", "2223", "2324", "2425", "2526"]);
+  const [selectedSeasons, setSelectedSeasons] = useState<string[]>([
+    "2122",
+    "2223",
+    "2324",
+    "2425",
+    "2526",
+  ]);
   const [query, setQuery] = useState("");
   const [confidenceFilter, setConfidenceFilter] = useState<"all" | "high" | "mid" | "risk">("all");
   const [tolerance, setTolerance] = useState(8);
+  const [apiKey, setApiKey] = useState("");
 
   const matches: Match[] = scanner?.top_matches || [];
 
@@ -140,6 +150,9 @@ export default function HomePage() {
         setScanner(JSON.parse(raw));
       } catch {}
     }
+
+    const savedKey = localStorage.getItem("odds_api_key");
+    if (savedKey) setApiKey(savedKey);
   }, []);
 
   async function loadScanner() {
@@ -158,9 +171,9 @@ export default function HomePage() {
       };
 
       const cleanLeagues =
-  selectedLeagues.includes("🏆 Tüm Ligler") || selectedLeagues.length === 0
-    ? Object.keys(LEAGUE_MAP)
-    : selectedLeagues.map((x) => cleanLeagueName(x));
+        selectedLeagues.includes("🏆 Tüm Ligler") || selectedLeagues.length === 0
+          ? Object.keys(LEAGUE_MAP)
+          : selectedLeagues.map((x) => cleanLeagueName(x));
 
       const params = new URLSearchParams({
         date: dateMap[dateOption] || "today",
@@ -168,11 +181,16 @@ export default function HomePage() {
         tolerans: formatTolerance(tolerance),
       });
 
-      const res = await fetch(`${API_URL}/scanner/daily?${params.toString()}`);
+      const res = await fetch(`${API_URL}/scanner/daily?${params.toString()}`, {
+        headers: {
+          "x-api-key": apiKey,
+        },
+      });
+
       const data = await res.json();
 
       if (data.error) {
-        setError("API hata verdi");
+        setError(data.message || "API hata verdi");
         return;
       }
 
@@ -214,38 +232,38 @@ export default function HomePage() {
   }
 
   function toggleLeague(league: string) {
-  setSelectedLeagues((prev) => {
-    const allRealLeagues = LEAGUES.filter((x) => x !== "🏆 Tüm Ligler");
+    setSelectedLeagues((prev) => {
+      const allRealLeagues = LEAGUES.filter((x) => x !== "🏆 Tüm Ligler");
 
-    if (league === "🏆 Tüm Ligler") {
-      const allSelected = allRealLeagues.every((x) => prev.includes(x));
+      if (league === "🏆 Tüm Ligler") {
+        const allSelected = allRealLeagues.every((x) => prev.includes(x));
 
-      if (allSelected) {
-        return [];
+        if (allSelected) {
+          return [];
+        }
+
+        return ["🏆 Tüm Ligler", ...allRealLeagues];
       }
 
-      return ["🏆 Tüm Ligler", ...allRealLeagues];
-    }
+      const withoutAll = prev.filter((x) => x !== "🏆 Tüm Ligler");
 
-    const withoutAll = prev.filter((x) => x !== "🏆 Tüm Ligler");
+      let next: string[];
 
-    let next: string[];
+      if (withoutAll.includes(league)) {
+        next = withoutAll.filter((x) => x !== league);
+      } else {
+        next = [...withoutAll, league];
+      }
 
-    if (withoutAll.includes(league)) {
-      next = withoutAll.filter((x) => x !== league);
-    } else {
-      next = [...withoutAll, league];
-    }
+      const allSelectedNow = allRealLeagues.every((x) => next.includes(x));
 
-    const allSelectedNow = allRealLeagues.every((x) => next.includes(x));
+      if (allSelectedNow) {
+        return ["🏆 Tüm Ligler", ...allRealLeagues];
+      }
 
-    if (allSelectedNow) {
-      return ["🏆 Tüm Ligler", ...allRealLeagues];
-    }
-
-    return next;
-  });
-}
+      return next;
+    });
+  }
 
   function toggleSeason(season: string) {
     setSelectedSeasons((prev) => {
@@ -382,6 +400,16 @@ export default function HomePage() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
+                <input
+                  value={apiKey}
+                  onChange={(e) => {
+                    setApiKey(e.target.value);
+                    localStorage.setItem("odds_api_key", e.target.value);
+                  }}
+                  placeholder="API Key..."
+                  className="rounded-lg border border-white/10 bg-[#111827] px-3 py-2 text-xs text-white outline-none focus:border-yellow-400/60"
+                />
+
                 <button
                   onClick={() => setFilterOpen(true)}
                   className="rounded-lg border border-white/10 bg-[#121a2a] px-4 py-2 text-xs font-black text-white hover:border-yellow-400/50"
@@ -754,14 +782,14 @@ export default function HomePage() {
                       className="mb-2 flex cursor-pointer items-center gap-3 rounded-lg bg-[#0b111c] px-4 py-3 text-sm hover:bg-[#172238]"
                     >
                       <input
-  type="checkbox"
-  checked={
-    selectedLeagues.includes("🏆 Tüm Ligler") ||
-    selectedLeagues.includes(league)
-  }
-  onChange={() => toggleLeague(league)}
-  className="accent-yellow-400"
-/>
+                        type="checkbox"
+                        checked={
+                          selectedLeagues.includes("🏆 Tüm Ligler") ||
+                          selectedLeagues.includes(league)
+                        }
+                        onChange={() => toggleLeague(league)}
+                        className="accent-yellow-400"
+                      />
                       <span>{league}</span>
                     </label>
                   ))}
