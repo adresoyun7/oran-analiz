@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 import requests
 from dotenv import load_dotenv
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Header
 from fastapi.middleware.cors import CORSMiddleware
 
 from services.pro_analysis_engine import run_pro_engine
@@ -60,8 +60,12 @@ def iso_window(date_mode: str = "today"):
     end = start + timedelta(days=1)
 
     return (
-        start.replace(hour=0, minute=0, second=0, microsecond=0).isoformat().replace("+00:00", "Z"),
-        end.replace(hour=0, minute=0, second=0, microsecond=0).isoformat().replace("+00:00", "Z"),
+        start.replace(hour=0, minute=0, second=0, microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z"),
+        end.replace(hour=0, minute=0, second=0, microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z"),
     )
 
 
@@ -130,31 +134,36 @@ def normalize_game(game, league_name):
         "league": league_name,
         "commence_time": commence_time,
         "time": commence_time[11:16] if len(commence_time) >= 16 else "-",
-
         "home_odds": home_odds,
         "draw_odds": draw_odds,
         "away_odds": away_odds,
-
         "over25_odds": over25,
         "under25_odds": under25,
         "btts_yes_odds": btts_yes,
         "btts_no_odds": btts_no,
-
         "h": home_odds,
         "b": draw_odds,
         "a": away_odds,
     }
 
 
-def fetch_sport_odds(sport_key, league_name, date_mode="today"):
+def fetch_sport_odds(sport_key, league_name, date_mode="today", api_key=None):
+    active_key = api_key or API_KEY
+
+    if not active_key:
+        return {
+            "league": league_name,
+            "error": "API key bulunamadı. Siteye API key gir veya Render ODDS_API_KEY env ayarla.",
+        }
+
     start_iso, end_iso = iso_window(date_mode)
 
     url = f"https://api.the-odds-api.com/v4/sports/{sport_key}/odds"
 
     params = {
-        "apiKey": API_KEY,
+        "apiKey": active_key,
         "regions": "eu",
-        "markets": "h2h,totals",
+        "markets": "h2h,totals,btts",
         "oddsFormat": "decimal",
         "dateFormat": "iso",
         "commenceTimeFrom": start_iso,
@@ -166,7 +175,9 @@ def fetch_sport_odds(sport_key, league_name, date_mode="today"):
     if res.status_code != 200:
         return {
             "league": league_name,
-            "error": res.json() if "application/json" in res.headers.get("content-type", "") else res.text,
+            "error": res.json()
+            if "application/json" in res.headers.get("content-type", "")
+            else res.text,
         }
 
     data = res.json()
@@ -213,9 +224,12 @@ def analyze(data: dict):
 def get_matches(
     date: str = Query("today"),
     leagues: str = Query("Premier League"),
+    x_api_key: str | None = Header(default=None),
 ):
-    if not API_KEY:
-        return {"error": "ODDS_API_KEY bulunamadı. .env dosyasını kontrol et."}
+    active_key = x_api_key or API_KEY
+
+    if not active_key:
+        return {"error": "API key bulunamadı. Siteye API key gir veya Render ODDS_API_KEY env ayarla."}
 
     requested_leagues = [x.strip() for x in leagues.split(",") if x.strip()]
 
@@ -232,7 +246,7 @@ def get_matches(
             })
             continue
 
-        result = fetch_sport_odds(sport_key, league_name, date)
+        result = fetch_sport_odds(sport_key, league_name, date, active_key)
 
         if "error" in result:
             errors.append(result)
@@ -252,8 +266,9 @@ def daily_scanner(
     date: str = Query("today"),
     leagues: str = Query("Premier League"),
     tolerans: float = Query(0.08),
+    x_api_key: str | None = Header(default=None),
 ):
-    data = get_matches(date=date, leagues=leagues)
+    data = get_matches(date=date, leagues=leagues, x_api_key=x_api_key)
 
     if "error" in data:
         return data
