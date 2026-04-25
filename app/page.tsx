@@ -139,10 +139,10 @@ export default function HomePage() {
     };
 
     const cleanLeagues = selectedLeagues.includes("🏆 Tüm Ligler")
-      ? ["Premier League"]
-      : selectedLeagues.map((x) =>
-          x.replace(/^(\p{Emoji_Presentation}|\p{Extended_Pictographic}|\S)\s/u, "").trim()
-        );
+  ? ["Premier League", "La Liga", "Bundesliga", "Serie A", "Ligue 1"]
+  : selectedLeagues.map((x) =>
+      x.replace(/^(\p{Emoji_Presentation}|\p{Extended_Pictographic}|\S)\s/u, "").trim()
+    );
 
     const params = new URLSearchParams({
       date: dateMap[dateOption] || "today",
