@@ -18,12 +18,25 @@ function calcSplit(mainScore: number) {
   return { one, x, two };
 }
 
+function goHome() {
+  window.location.href = "/";
+}
+
 export default function MatchDetailPage() {
   const [match, setMatch] = useState<Match | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+
     const raw = localStorage.getItem("vibe_selected_match");
-    if (raw) setMatch(JSON.parse(raw));
+    if (raw) {
+      try {
+        setMatch(JSON.parse(raw));
+      } catch {
+        setMatch(null);
+      }
+    }
   }, []);
 
   const similarMatches = useMemo(() => {
@@ -41,17 +54,22 @@ export default function MatchDetailPage() {
     ];
   }, []);
 
-  if (!match) {
+  if (!mounted || !match) {
     return (
       <main className="min-h-screen bg-[#f4f7fb] text-slate-100">
         <div className="grid min-h-screen grid-cols-[260px_1fr]">
           <Sidebar />
           <section className="min-w-0 p-4">
             <div className="rounded-xl border border-white/10 bg-[#0b111c] p-8">
-              <h1 className="mb-3 text-2xl font-black text-white">Maç detayı bulunamadı.</h1>
-              <Link href="/" className="rounded-lg bg-yellow-400 px-5 py-3 font-black text-black">
+              <h1 className="mb-3 text-2xl font-black text-white">
+                Maç detayı bulunamadı.
+              </h1>
+              <button
+                onClick={goHome}
+                className="rounded-lg bg-yellow-400 px-5 py-3 font-black text-black"
+              >
                 Ana sayfaya dön
-              </Link>
+              </button>
             </div>
           </section>
         </div>
@@ -90,12 +108,12 @@ export default function MatchDetailPage() {
         <section className="min-w-0 p-4">
           <div className="w-full">
             <div className="mb-3 flex items-center justify-between rounded-xl bg-[#0b111c] px-4 py-3 shadow-xl">
-              <Link
-                href="/"
+              <button
+                onClick={goHome}
                 className="rounded-lg border border-white/10 px-3 py-2 text-xs font-black text-white hover:border-yellow-400/50"
               >
                 ← Ana Sayfa
-              </Link>
+              </button>
 
               <div className="text-center">
                 <div className="text-xs font-black uppercase tracking-widest text-yellow-400">
@@ -110,25 +128,42 @@ export default function MatchDetailPage() {
               </div>
 
               <div className="rounded-lg bg-yellow-400 px-3 py-2 text-xs font-black text-black">
-                {match.odd || "1.85"} Oran
+                {match.odd || match.home_odds || "1.85"} Oran
               </div>
             </div>
 
             <div className="mb-3 grid gap-3 lg:grid-cols-3">
-              <TopCard title="ANA TAHMİN" value={match.main_pick || match.selection || "-"} sub="Maç sonucu / market önerisi" color="green" />
-              <TopCard title="GÜVEN SKORU" value={`%${score}`} sub="AI güven oranı" color="blue" />
-              <TopCard title="TAHMİNİ SKOR" value={match.expected_score || "1 - 0"} sub="En olası skor" color="dark" />
+              <TopCard
+                title="ANA TAHMİN"
+                value={match.main_pick || match.selection || "-"}
+                sub="Maç sonucu / market önerisi"
+                color="green"
+              />
+              <TopCard
+                title="GÜVEN SKORU"
+                value={`%${score}`}
+                sub="AI güven oranı"
+                color="blue"
+              />
+              <TopCard
+                title="TAHMİNİ SKOR"
+                value={match.expected_score || "1 - 0"}
+                sub="En olası skor"
+                color="dark"
+              />
             </div>
 
             <div className="mb-3 rounded-xl bg-[#0b111c] px-4 py-3 text-xs text-slate-300 shadow-xl">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   Kullanılan tolerans: <b className="text-white">0.08</b> • Örneklem:{" "}
-                  <b className="text-white">10 maç</b> • Güven çarpanı:{" "}
+                  <b className="text-white">{match.sample_count || match.ornek || 10} maç</b> • Güven çarpanı:{" "}
                   <b className="text-white">1.0</b>
                 </div>
                 <div>
-                  Maç tipi: <b className="text-yellow-300">{match.match_type || "Sürpriz Açık"}</b> • Gol profili:{" "}
+                  Maç tipi:{" "}
+                  <b className="text-yellow-300">{match.match_type || "Sürpriz Açık"}</b>{" "}
+                  • Gol profili:{" "}
                   <b className="text-yellow-300">{match.goal_profile || "Düşük Gollü"}</b>
                 </div>
               </div>
@@ -173,8 +208,14 @@ export default function MatchDetailPage() {
               <div className="space-y-3 text-sm leading-6 text-slate-300">
                 <p>• Bu oran aralığında benzer maç bulundu ve model ana senaryoyu öne çıkardı.</p>
                 <p>• Ev sahibi / deplasman oran dengesi, maç temposu ve gol profili birlikte değerlendirildi.</p>
-                <p>• Ortalama toplam gol profili: <b className="text-white">{match.goal_profile || "Düşük Gollü"}</b>.</p>
-                <p>• Maç tipi: <b className="text-white">{match.match_type || "Sürpriz Açık"}</b>.</p>
+                <p>
+                  • Ortalama toplam gol profili:{" "}
+                  <b className="text-white">{match.goal_profile || "Düşük Gollü"}</b>.
+                </p>
+                <p>
+                  • Maç tipi:{" "}
+                  <b className="text-white">{match.match_type || "Sürpriz Açık"}</b>.
+                </p>
                 <p>• AI analize göre en mantıklı canlı kontrol noktası ilk 15-20 dakika tempo ve ceza sahası aksiyonu.</p>
               </div>
             </Panel>
@@ -237,7 +278,7 @@ function Sidebar() {
   return (
     <aside className="sticky top-0 flex h-screen flex-col justify-between border-r border-white/10 bg-[#0b111c] text-white shadow-xl">
       <div className="p-4">
-        <Link href="/" className="flex items-center gap-3">
+        <button onClick={goHome} className="flex items-center gap-3 text-left">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-yellow-400 text-xl font-black text-black">
             O
           </div>
@@ -247,10 +288,10 @@ function Sidebar() {
             </div>
             <div className="text-xs font-bold text-slate-400">AI Match Engine</div>
           </div>
-        </Link>
+        </button>
 
         <div className="mt-8 space-y-2">
-          <SidebarItem icon="🏠" label="Ana Sayfa" href="/" />
+          <SidebarItem icon="🏠" label="Ana Sayfa" onClick={goHome} />
           <SidebarItem icon="⭐" label="Favoriler" />
           <SidebarItem icon="🎫" label="Kuponlarım" />
           <SidebarItem icon="📊" label="Analiz Geçmişi" />
@@ -263,35 +304,35 @@ function Sidebar() {
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <Link
-            href="/"
+          <button
+            onClick={goHome}
             className="rounded-lg border border-white/10 bg-[#111827] py-2 text-center text-sm font-bold hover:bg-[#172238]"
           >
             Giriş Yap
-          </Link>
+          </button>
 
-          <Link
-            href="/"
+          <button
+            onClick={goHome}
             className="rounded-lg bg-yellow-400 py-2 text-center text-sm font-black text-black hover:bg-yellow-300"
           >
             Üye Ol
-          </Link>
+          </button>
         </div>
       </div>
     </aside>
   );
 }
 
-function SidebarItem({ icon, label, href }: any) {
-  const content = (
-    <div className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold text-slate-300 hover:bg-[#172238] hover:text-white">
+function SidebarItem({ icon, label, onClick }: any) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-bold text-slate-300 hover:bg-[#172238] hover:text-white"
+    >
       <span>{icon}</span>
       <span>{label}</span>
-    </div>
+    </button>
   );
-
-  if (href) return <Link href={href}>{content}</Link>;
-  return content;
 }
 
 function TopCard({ title, value, sub, color }: any) {
