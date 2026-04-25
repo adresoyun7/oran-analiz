@@ -123,180 +123,50 @@ export default function HomePage() {
   }, []);
 
   async function loadScanner() {
-    setLoading(true);
-    setError("");
+  setLoading(true);
+  setError("");
 
-    const fakeData = {
-      total_matches: 8,
-      top_matches: [
-        {
-          home_team: "Galatasaray",
-          away_team: "Fenerbahçe",
-          league: "Süper Lig",
-          time: "20:00",
-          main_pick: "MS 1",
-          alternative_pick: "2.5 Üst",
-          combo_pick: "MS 1 + 2.5 Üst",
-          combo_fit: true,
-          selection: "2.5 Üst",
-          market: "ALT/ÜST",
-          pro_score: 76,
-          odd: 1.85,
-          sample_count: 18,
-          tolerance_hits: ["0.05", "0.08", "0.10"],
-          match_type: "Favori",
-          goal_profile: "Yüksek Tempo",
-          expected_score: "2 - 1",
-        },
-        {
-          home_team: "Real Madrid",
-          away_team: "Barcelona",
-          league: "La Liga",
-          time: "22:00",
-          main_pick: "KG Var",
-          alternative_pick: "2.5 Üst",
-          combo_pick: "KG Var + 2.5 Üst",
-          combo_fit: true,
-          selection: "KG Var",
-          market: "KG",
-          pro_score: 72,
-          odd: 1.95,
-          sample_count: 14,
-          tolerance_hits: ["0.08", "0.10", "0.15"],
-          match_type: "Dengeli Derbi",
-          goal_profile: "Açık Oyun",
-          expected_score: "2 - 2",
-        },
-        {
-          home_team: "Manchester City",
-          away_team: "Liverpool",
-          league: "Premier League",
-          time: "18:30",
-          main_pick: "2.5 Üst",
-          alternative_pick: "KG Var",
-          combo_pick: "KG Var + 2.5 Üst",
-          combo_fit: true,
-          selection: "3.5 Üst",
-          market: "ALT/ÜST",
-          pro_score: 81,
-          odd: 1.7,
-          sample_count: 22,
-          tolerance_hits: ["0.00", "0.05", "0.08", "0.10"],
-          match_type: "Yüksek Kalite",
-          goal_profile: "Bol Gol",
-          expected_score: "3 - 1",
-        },
-        {
-          home_team: "PSG",
-          away_team: "Marseille",
-          league: "Ligue 1",
-          time: "21:45",
-          main_pick: "MS 1",
-          alternative_pick: "1.5 Üst",
-          combo_pick: "MS 1 + 1.5 Üst",
-          combo_fit: true,
-          selection: "2.5 Üst",
-          market: "ALT/ÜST",
-          pro_score: 65,
-          odd: 1.6,
-          sample_count: 10,
-          tolerance_hits: ["0.10", "0.15"],
-          match_type: "Favori",
-          goal_profile: "Orta-Yüksek",
-          expected_score: "2 - 0",
-        },
-        {
-          home_team: "Bayern Münih",
-          away_team: "Dortmund",
-          league: "Bundesliga",
-          time: "19:30",
-          main_pick: "KG Var",
-          alternative_pick: "3.5 Üst",
-          combo_pick: "KG Var + 2.5 Üst",
-          combo_fit: true,
-          selection: "KG Var",
-          market: "KG",
-          pro_score: 54,
-          odd: 1.9,
-          sample_count: 7,
-          tolerance_hits: ["0.15", "0.20"],
-          match_type: "Riskli Derbi",
-          goal_profile: "Gollü",
-          expected_score: "2 - 1",
-        },
-        {
-          home_team: "Roma",
-          away_team: "Milan",
-          league: "Serie A",
-          time: "21:45",
-          main_pick: "2.5 Alt",
-          alternative_pick: "KG Yok",
-          combo_pick: "2.5 Alt + KG Yok",
-          combo_fit: false,
-          selection: "2.5 Alt",
-          market: "ALT/ÜST",
-          pro_score: 49,
-          odd: 2.1,
-          sample_count: 5,
-          tolerance_hits: ["0.20", "0.30"],
-          match_type: "Dengeli",
-          goal_profile: "Düşük Tempo",
-          expected_score: "1 - 1",
-        },
-        {
-          home_team: "Benfica",
-          away_team: "Porto",
-          league: "Portekiz",
-          time: "23:00",
-          main_pick: "1X",
-          alternative_pick: "2.5 Alt",
-          combo_pick: "1X + 2.5 Alt",
-          combo_fit: true,
-          selection: "1X",
-          market: "Çifte Şans",
-          pro_score: 69,
-          odd: 1.42,
-          sample_count: 16,
-          tolerance_hits: ["0.05", "0.10"],
-          match_type: "Ev Sahibi Avantaj",
-          goal_profile: "Kontrollü",
-          expected_score: "1 - 0",
-        },
-        {
-          home_team: "Ajax",
-          away_team: "PSV",
-          league: "Hollanda",
-          time: "17:30",
-          main_pick: "2.5 Üst",
-          alternative_pick: "KG Var",
-          combo_pick: "KG Var + 2.5 Üst",
-          combo_fit: true,
-          selection: "KG Var",
-          market: "Gol",
-          pro_score: 74,
-          odd: 1.78,
-          sample_count: 20,
-          tolerance_hits: ["0.00", "0.05", "0.10"],
-          match_type: "Açık Oyun",
-          goal_profile: "Yüksek Tempo",
-          expected_score: "2 - 2",
-        },
-      ],
+  try {
+    const API_URL =
+      process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+
+    const dateMap: Record<string, string> = {
+      Bugün: "today",
+      Yarın: "tomorrow",
+      "2 Gün Sonra": "2days",
+      "3 Gün Sonra": "3days",
+      "Özel Tarih": "today",
     };
 
-    fakeData.top_matches = fakeData.top_matches
-      .map((m) => ({
-        ...m,
-        playable_score: calcPlayableScore(m),
-      }))
-      .sort((a, b) => b.playable_score - a.playable_score || b.pro_score - a.pro_score);
+    const cleanLeagues = selectedLeagues.includes("🏆 Tüm Ligler")
+      ? ["Premier League"]
+      : selectedLeagues.map((x) =>
+          x.replace(/^(\p{Emoji_Presentation}|\p{Extended_Pictographic}|\S)\s/u, "").trim()
+        );
 
-    setTimeout(() => {
-      setScanner(fakeData);
-      localStorage.setItem("vibe_scanner", JSON.stringify(fakeData));
-      setLoading(false);
-    }, 700);
+    const params = new URLSearchParams({
+      date: dateMap[dateOption] || "today",
+      leagues: cleanLeagues.join(","),
+      tolerans: formatTolerance(tolerance),
+    });
+
+    const res = await fetch(`${API_URL}/scanner/daily?${params.toString()}`);
+
+    const data = await res.json();
+
+    if (data.error) {
+      setError("API hata verdi");
+      return;
+    }
+
+    setScanner(data);
+    localStorage.setItem("vibe_scanner", JSON.stringify(data));
+  } catch (err) {
+    setError("API bağlantı hatası");
+  } finally {
+    setLoading(false);
   }
+}
 
   function openDetail(m: Match, index: number) {
     localStorage.setItem("vibe_selected_match", JSON.stringify(m));
